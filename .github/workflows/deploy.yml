@@ -145,26 +145,52 @@ jobs:
           GAGAL=0
           BERKAS_GAGAL=""
 
+          # Opsi bersama untuk setiap curl.
+          OPSI=(--user "$FTP_USER:$FTP_PASS" --ftp-create-dirs --ssl
+                --silent --show-error --fail --connect-timeout 20 --max-time 300)
+
+          # Kirim satu berkas. Kalau gagal, coba hapus dulu file lama di
+          # server lalu ulangi - sebagian server menolak menimpa berkas
+          # yang sudah ada dan membalas 451.
+          kirim() {
+            berkas="$1"; relatif="$2"
+            tujuan="ftp://$HOST$PATH_REMOTE/$relatif"
+
+            if curl "${OPSI[@]}" -T "$berkas" "$tujuan" 2>/tmp/galat-curl; then
+              return 0
+            fi
+
+            curl --user "$FTP_USER:$FTP_PASS" --ssl \
+                 -Q "DELE $PATH_REMOTE/$relatif" \
+                 --list-only "ftp://$HOST/" >/dev/null 2>&1 || true
+            sleep 1
+
+            if curl "${OPSI[@]}" -T "$berkas" "$tujuan" 2>/tmp/galat-curl; then
+              return 2
+            fi
+
+            return 1
+          }
+
           while IFS= read -r -d '' berkas; do
             relatif="${berkas#./}"
 
-            # --ssl berarti "coba TLS, jatuh ke koneksi biasa bila server
-            # tidak mendukungnya". Jangan pakai --ftp-ssl-optional, opsi
-            # itu memang tidak pernah ada di curl.
-            if curl --user "$FTP_USER:$FTP_PASS" \
-                    --ftp-create-dirs \
-                    --ssl \
-                    --silent --show-error --fail \
-                    --connect-timeout 20 \
-                    --max-time 300 \
-                    -T "$berkas" "ftp://$HOST$PATH_REMOTE/$relatif" 2>/tmp/galat-curl; then
+            kirim "$berkas" "$relatif"
+            hasil=$?
+
+            if [ "$hasil" -eq 0 ]; then
               SUKES=$((SUKES + 1))
               echo "  [ok]    $relatif"
+            elif [ "$hasil" -eq 2 ]; then
+              SUKES=$((SUKES + 1))
+              echo "  [ok*]   $relatif  (file lama dihapus dulu, lalu unggah ulang)"
             else
               GAGAL=$((GAGAL + 1))
               BERKAS_GAGAL="${BERKAS_GAGAL}${relatif}\n"
               echo "  [GAGAL] $relatif"
-              sed 's/^/            /' /tmp/galat-curl
+              # Buang peringatan --ssl, itu bukan penyebab kegagalan.
+              grep -v -- 'insecure option' /tmp/galat-curl \
+                | grep -v -- '^Warning: instead' | sed 's/^/            /'
             fi
           done < <(find . -type f -not -path './.git/*' -print0)
 

@@ -92,7 +92,10 @@ foreach ($k in @('ftpHost', 'ftpUser', 'ftpPass', 'ftpPath')) {
     }
 }
 
-$ftpUrl = 'ftp://{0}:{1}@{2}/' -f $cfg.ftpUser, $cfg.ftpPass, $cfg.ftpHost
+# URL sengaja TANPA kredensial. Kredensial selalu lewat --user, supaya
+# password dengan karakter khusus (@ : / # %) tidak merusak URL.
+$kredensial = '{0}:{1}' -f $cfg.ftpUser, $cfg.ftpPass
+$ftpUrl     = 'ftp://{0}/' -f $cfg.ftpHost
 $root   = ([string]$cfg.ftpPath).TrimEnd('/')
 
 # ---------------------------------------------------------------------------
@@ -108,7 +111,8 @@ if ($TesKoneksi) {
     Write-Host '  Menguji koneksi FTP ...' -ForegroundColor Cyan
 
     # Daftar isi folder tujuan. Kalau path salah, server akan bilang 550.
-    $uji = & curl.exe --silent --show-error --fail `
+    $uji = & curl.exe "--user" $kredensial `
+                      --silent --show-error --fail `
                       --ssl --list-only "$ftpUrl$root/" 2>&1
 
     if ($LASTEXITCODE -eq 0) {
@@ -207,7 +211,31 @@ if ($DryRun) {
 # ---------------------------------------------------------------------------
 
 $berhasil = 0
+$setelahHapus = 0
 $gagal    = @()
+
+# Opsi bersama untuk setiap curl.
+$opsiCurl = @(
+    '--ftp-create-dirs',
+    '--ssl',
+    '--silent',
+    '--show-error',
+    '--fail',
+    '--connect-timeout', '20',
+    '--max-time', '300'
+)
+
+# Berkas sementara untuk menampung stderr curl.
+$berkasGalat = [IO.Path]::GetTempFileName()
+
+# PENTING: di sekitar pemanggilan curl, ErrorActionPreference diturunkan
+# menjadi 'Continue'. PowerShell 5.1 membungkus stderr dari perintah
+# native menjadi ErrorRecord, dan dengan 'Stop' MASIH melempar error -
+# bahkan ketika stderr sudah dialihkan ke berkas. Akibatnya peringatan
+# biasa dari curl (mis. "--ssl is an insecure option") akan menghentikan
+# seluruh skrip. Pengalihan ke berkas saja tidak cukup.
+$ErrorActionPreferenceAsli = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 
 foreach ($f in $files) {
     $rel    = $f.FullName.Substring($workDir.Length + 1).Replace('\', '/')
@@ -215,25 +243,52 @@ foreach ($f in $files) {
 
     # --ssl berarti "coba TLS, jatuh ke koneksi biasa bila server tidak
     # mendukungnya". Opsi --ftp-ssl-optional tidak pernah ada di curl.
-    $out = & curl.exe --silent --show-error --fail `
-                       --ftp-create-dirs `
-                       --ssl `
-                       --connect-timeout 20 `
-                       --max-time 300 `
-                       -T $f.FullName $tujuan 2>&1
+    #
+    # stderr Dialihkan ke BERKAS, bukan 2>&1. Kalau ditulis ke output,
+    # PowerShell memakai $ErrorActionPreference='Stop' akan menganggap
+    # peringatan biasa dari curl sebagai error fatal dan menghentikan skrip.
+    & curl.exe "--user" $kredensial @opsiCurl `
+               -T $f.FullName $tujuan 2>$berkasGalat
+    $kode = $LASTEXITCODE
 
-    if ($LASTEXITCODE -eq 0) {
+    if ($kode -eq 0) {
         $berhasil++
         Write-Host "    [ok]    $rel" -ForegroundColor Green
-    } else {
-        $gagal += $rel
-        Write-Host "    [GAGAL] $rel" -ForegroundColor Red
-        if ($out) { Write-Host "            $out" -ForegroundColor DarkRed }
+        continue
     }
+
+    # Percobaan kedua: hapus berkas lama di server, lalu unggah ulang.
+    # Sebagian server menolak menimpa berkas yang sudah ada (balasan 451).
+    & curl.exe "--user" $kredensial "--ssl" `
+               -Q "DELE $root/$rel" --list-only $ftpUrl 2>$null | Out-Null
+    Start-Sleep -Seconds 1
+
+    & curl.exe "--user" $kredensial @opsiCurl `
+               -T $f.FullName $tujuan 2>$berkasGalat
+    $kode = $LASTEXITCODE
+
+    if ($kode -eq 0) {
+        $berhasil++
+        $setelahHapus++
+        Write-Host "    [ok*]   $rel  (file lama dihapus dulu, lalu unggah ulang)" -ForegroundColor Green
+        continue
+    }
+
+    $gagal += $rel
+    Write-Host "    [GAGAL] $rel" -ForegroundColor Red
+
+    # Buang peringatan --ssl, itu bukan penyebab kegagalan.
+    $teks = (Get-Content $berkasGalat -Raw -ErrorAction SilentlyContinue)
+    $bersih = ($teks -split "`r?`n") | Where-Object {
+        $_.Trim() -and $_ -notmatch 'insecure option' -and $_ -notmatch '^Warning: instead'
+    }
+    if ($bersih) { $bersih | ForEach-Object { Write-Host "            $($_.Trim())" -ForegroundColor DarkRed } }
 }
 
 Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+Remove-Item $berkasGalat -Force -ErrorAction SilentlyContinue
+$ErrorActionPreference = $ErrorActionPreferenceAsli
 
 Write-Host ''
 Write-Host "  Selesai: $berhasil berhasil, $($gagal.Count) gagal" -ForegroundColor Cyan

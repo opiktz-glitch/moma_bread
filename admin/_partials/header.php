@@ -23,6 +23,13 @@ $activeTab   = $activeTab ?? '';
 $adminUser   = current_user();
 $entities    = admin_entities();
 $flashes     = take_flashes();
+
+// Nama untuk sapaan di topbar. current_user() bisa null bila session sudah
+// habis namun halaman tetap dirender, jadi setiap akses memakai penjaga null.
+$displayName = (string)($adminUser['full_name'] ?? '');
+if ($displayName === '') {
+    $displayName = (string)($adminUser['username'] ?? 'Admin');
+}
 ?>
 <!DOCTYPE html>
 <html lang="id" data-theme="light">
@@ -61,6 +68,10 @@ $flashes     = take_flashes();
 
     <div class="navsep">Keamanan</div>
 
+    <a href="<?= e(url('admin/status.php')) ?>" class="<?= $activeTab === 'status' ? 'on' : '' ?>">
+      <span>🩺</span> Status Server
+    </a>
+
     <a href="<?= e(url('admin/backup.php')) ?>" class="<?= $activeTab === 'backup' ? 'on' : '' ?>">
       <span>💾</span> Backup Database
     </a>
@@ -84,7 +95,7 @@ $flashes     = take_flashes();
   <header class="topbar">
     <h1><?= e($pageTitle) ?></h1>
     <div class="user">
-      <span>Halo, <strong><?= e($adminUser['full_name'] ?: $adminUser['username']) ?></strong></span>
+      <span>Halo, <strong><?= e($displayName) ?></strong></span>
     </div>
   </header>
 

@@ -24,7 +24,19 @@ dan dapat dikelola dari **panel admin** tanpa menyentuh kode.
 - Halaman Pengaturan untuk mengubah teks situs, kontak, dan judul section
 - Dashboard berisi ringkasan jumlah data
 - **Backup Database** — buat & unduh berkas `.sql` (maks 15 arsip tertua)
+- **Backup Gambar** — buat & unduh arsip `.zip` seluruh `assets/img` (maks 10 arsip terbaru)
+- **Status Server** — cek PHP, ekstensi, database, izin tulis folder, `.htaccess`,
+  dan `mod_rewrite` dalam satu halaman. Berguna sekali saat pasang di hosting baru
 - **Ganti Password** — dengan verifikasi password lama dan syarat minimal 8 karakter
+
+---
+
+## Deploy ke Hosting
+
+Panduan lengkap untuk hosting gratis **TinkerHost** ada di
+[`DEPLOY-TINKERHOST.md`](DEPLOY-TINKERHOST.md). Isinya mencakup cara membuat
+database, mengisi `config.php`, import SQL, memilih versi PHP, sampai
+menangani error yang sering muncul.
 
 ## Upgrade dari Versi 1-Tingkat
 
@@ -111,6 +123,7 @@ moma_bread/
 │   ├── backup.php         Buat / unduh backup database
 │   ├── backup-gambar.php  Buat / unduh backup gambar (.zip)
 │   ├── password.php       Ganti password admin
+│   ├── status.php         Cek kesehatan server (PHP, DB, izin, rewrite)
 │   ├── _schema.php        Definisi entitas (label, kolom, field, relasi)
 │   └── _partials/         Layout panel admin
 ├── backups/               Arsip .sql + .zip (tidak bisa diakses langsung via browser)

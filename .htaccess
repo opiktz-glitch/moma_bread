@@ -6,11 +6,57 @@
 DirectoryIndex index.php index.html
 
 # ---------------------------------------------------------------------
+#  Cegah akses ke berkas & folder sensitif
+#
+#  CATATAN: aturan ini sengaja memakai <FilesMatch> dan mod_rewrite saja,
+#  TIDAK memakai "Options -Indexes" atau "RedirectMatch". Kedua perintah
+#  itu bisa memicu HTTP 500 di hosting yang AllowOverride-nya dibatasi.
+# ---------------------------------------------------------------------
+
+# Kredensial, source, dan arsip backup tidak boleh bisa diakses langsung.
+<FilesMatch "\.(sql|log|lock|json|ini|env|bak|old|orig|dist|yml|yaml)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Berkas tersembunyi dan sisa file editor: .git, .env, *.swp, ~*, dll.
+<FilesMatch "(^\.|\~$|\.swp$|\.tmp$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# ---------------------------------------------------------------------
+#  Header keamanan (dibaca browser)
+# ---------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ---------------------------------------------------------------------
 #  URL level 2:  /moma_bread/menu/signature  ->  menu.php?kategori=signature
 # Aktifkan modul rewrite pada httpd.conf bila belum aktif
 # ---------------------------------------------------------------------
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # --- Folder yang tidak boleh diakses langsung ---------------------
+    # Dulu pakai "RedirectMatch 404", tapi perintah itu butuh AllowOverride
+    # yang sering tidak diberikan hosting gratis (bisa jadi HTTP 500).
+    # Rewrite aman karena blok ini hanya dibaca bila mod_rewrite aktif.
+    RewriteRule ^(config|includes|backups|vendor|node_modules)(/|$)   -   [R=404,L]
+    RewriteRule ^(.*/)?\.(git|svn|env)($|/)                        -   [R=404,L]
 
     # /menu/<slug>  ->  menu.php?kategori=<slug>
     # Substitusi ditulis relatif (tanpa garis miring di depan) supaya
@@ -20,16 +66,3 @@ DirectoryIndex index.php index.html
     # /menu  ->  index.php
     RewriteRule ^menu/?$                index.php             [L,QSA]
 </IfModule>
-
-# ---------------------------------------------------------------------
-#  Cegah akses ke berkas sensitif
-# ---------------------------------------------------------------------
-<FilesMatch "\.(sql|log|md|lock|json|ini)$">
-    <IfModule mod_authz_core.c>
-        Require all denied
-    </IfModule>
-    <IfModule !mod_authz_core.c>
-        Order deny,allow
-        Deny from all
-    </IfModule>
-</FilesMatch>

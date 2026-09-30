@@ -7,6 +7,7 @@
   --bg:#f6f1ea; --card:#fff; --red:#B8241B; --red2:#8F1912;
   --ink:#3a1c18; --mut:#7a5a55; --line:#e7dbcd;
   --ok:#1d7a45; --ok-bg:#e7f6ed; --off:#8a8a8a; --off-bg:#efefef;
+  --warn:#8a5a00; --warn-bg:#fdf1dc;
   --side:#2a1a17; --side-txt:#f3e4dc;
 }
 *{box-sizing:border-box}
@@ -83,6 +84,7 @@ code{background:#f1e9e0;padding:2px 6px;border-radius:6px;font-size:13px}
 .pill{display:inline-block;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:800}
 .pill.ok{background:var(--ok-bg);color:var(--ok)}
 .pill.off{background:var(--off-bg);color:var(--off)}
+ .pill.warn{background:var(--warn-bg);color:var(--warn)}
 
 /* ----------------------------- FORM ------------------------------ */
 .form .field{margin-bottom:16px}

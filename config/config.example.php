@@ -17,10 +17,20 @@
 /* =====================================================================
  *  1. KONEKSI DATABASE
  *
- *  Nilai di bawah adalah CONTOH LOKAL (XAMPP).
- *  Untuk hosting, ganti DB_HOST dengan host MySQL dari hosting Anda.
- *  PENTING: host MySQL hosting hampir selalu BUKAN 127.0.0.1, melainkan
- *  seperti  sqlXXX.websitetools.com  atau  sqlXXX.infinityfree.com
+ *  Ambil semua nilai ini dari cPanel TinkerHost:
+ *    cPanel -> MySQL Databases
+ *      - "Database Server"  -> DB_HOST
+ *      - Database name      -> DB_NAME   (yang Anda buat sendiri)
+ *      - MySQL username     -> DB_USER
+ *      - MySQL password     -> DB_PASS
+ *
+ *  PENTING - host MySQL TinkerHost bentuknya:
+ *      sqlxxx.thsite.top
+ *  BUKAN "localhost" dan BUKAN "127.0.0.1". Mengisi localhost akan
+ *  membuat situs gagal konek.
+ *
+ *  Nama database dan user biasanya berawalan "thsi_".
+ *  Buat keduanya lewat cPanel, jangan menebak.
  * =================================================================== */
 define('DB_HOST', '127.0.0.1');
 define('DB_PORT', '3306');

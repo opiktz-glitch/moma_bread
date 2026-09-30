@@ -135,7 +135,6 @@ jobs:
           FTP_PASS: ${{ secrets.FTP_PASS }}
           FTP_PATH: ${{ secrets.FTP_PATH }}
         run: |
-                    set -uo pipefail
                     # --user dipakai, bukan kredensial yang disisipkan ke URL, supaya
                     # password dengan karakter khusus tetap aman.
                     HOST="${FTP_HOST%/}"
@@ -153,9 +152,9 @@ jobs:
                           --silent --show-error --fail --connect-timeout 20 --max-time 300)
 
                     # Daftar berkas disimpan di ARRAY, bukan di berkas temporary.
-                    # Alasannya: memakai berkas temp menimbulkan dua bug -
-                    # file temp ikut dieksekusi saat dihitung barisnya, dan isinya
-                    # bisa rusak sehingga path temp terbaca sebagai nama berkas.
+                    # Memakai berkas temp menimbulkan dua bug: file temp ikut dieksekusi
+                    # saat dihitung barisnya, dan isinya bisa rusak sehingga path temp
+                    # terbaca sebagai nama berkas.
                     mapfile -t SISA < <(find . -type f -not -path './.git/*' | sed 's|^\./||' | sort)
                     TOTAL_AWAL=${#SISA[@]}
 
@@ -163,6 +162,12 @@ jobs:
                     #   0 = langsung berhasil
                     #   2 = berhasil setelah file lama di server dihapus dulu
                     #   1 = gagal
+                    #
+                    # Balasan server saat mencoba menghapus disimpan di $KIRIM_DELE.
+                    # Sebelumnya errornya dibuang ke /dev/null sehingga penyebab
+                    # kegagalan tidak pernah terlihat.
+                    KIRIM_DELE=""
+
                     kirim() {
                       relatif="$1"
                       sumber="$PERAKARAN/$relatif"
@@ -171,9 +176,9 @@ jobs:
                         return 0
                       fi
 
-                      curl --user "$FTP_USER:$FTP_PASS" --ssl \
-                           -Q "DELE $PATH_REMOTE/$relatif" \
-                           --list-only "ftp://$HOST/" >/dev/null 2>&1 || true
+                      KIRIM_DELE="$(curl --user "$FTP_USER:$FTP_PASS" --ssl \
+                                           -Q "DELE $PATH_REMOTE/$relatif" \
+                                           --list-only "ftp://$HOST/" 2>&1 | head -2 | tr '\n' ' ')"
                       sleep 1
 
                       if curl "${OPSI[@]}" -T "$sumber" "ftp://$HOST$PATH_REMOTE/$relatif" 2>/tmp/galat-curl; then
@@ -184,6 +189,7 @@ jobs:
                     }
 
                     # Beberapa pass. Pass 1 mengunggah semua berkas; yang gagal
+                    # dicoba ulang pada pass berikutnya dengan jeda lebih lama.
                     GAGAL=("${SISA[@]}")
 
                     for PASS in $(seq 1 $MAKS_PASS); do
@@ -200,7 +206,7 @@ jobs:
                       for relatif in "${BERIKUT[@]}"; do
                         [ -z "$relatif" ] && continue
 
-                        # "|| hasil=$?" protects the function call from errexit.
+                        # "|| hasil=$?" melindungi pemanggilan fungsi dari errexit.
                         hasil=0
                         kirim "$relatif" || hasil=$?
 
@@ -223,22 +229,41 @@ jobs:
 
                     # Berkas yang masih gagal. PENTING: curl kode 18 berarti transfer
                     # TERPUTUS SEBAGIAN, jadi berkas di server bisa korup tanpa terlihat.
-                    # Ukuran remote dibandingkan dengan lokal supaya ketahuan.
                     if [ ${#GAGAL[@]} -gt 0 ]; then
                       RUSAK=()
+                      PETUNJUK=""
 
                       for relatif in "${GAGAL[@]}"; do
                         [ -z "$relatif" ] && continue
+
                         lokal=$(stat -c%s "$PERAKARAN/$relatif" 2>/dev/null || echo 0)
-                        jarak=$(curl --user "$FTP_USER:$FTP_PASS" --ssl --list-only \
-                                  "ftp://$HOST$PATH_REMOTE/$relatif" 2>/dev/null \
-                                | awk 'NR==1 {print $5}')
+
+                        # --list-only dijalankan sekali, keluarannya dipakai dua kali:
+                        # untuk membandingkan ukuran dan untuk membaca balasan server.
+                        #
+                        # "|| true" WAJIB: di bawah set -e, assignment yang berakhir
+                        # non-nol akan menghentikan skrip - padahal perintah ini justru
+                        # GAGAL saat server menolak, yaitu saat ringkasan dibutuhkan.
+                        # Jangan pakai "|| jawaban=..." karena itu menimpa pesan error
+                        # yang justru ingin ditampilkan.
+                        jawaban=$(curl --user "$FTP_USER:$FTP_PASS" --ssl --list-only \
+                                    "ftp://$HOST$PATH_REMOTE/$relatif" 2>&1) || true
+                        jarak=$(echo "$jawaban" | awk 'NR==1 {print $5}')
 
                         if [ -n "$jarak" ] && [ "$jarak" = "$lokal" ]; then
                           echo "  [CEK]   $relatif - ukuran di server sudah benar ($jarak byte)"
                         else
                           echo "  [RUSAK] $relatif - lokal $lokal byte, server ${jarak:-tidak terbaca}"
                           RUSAK+=("$relatif")
+
+                          # Bedakan sebab yang butuh tindakan berbeda.
+                          if echo "$jawaban" | grep -qi 'denied'; then
+                            PETUNJUK="${PETUNJUK}  ${relatif} -> server MENOLAK. Hapus manual lewat File Manager, lalu ulangi."$'\n'
+                          elif echo "$jawaban" | grep -qi 'not found'; then
+                            PETUNJUK="${PETUNJUK}  ${relatif} -> tidak ada di server dan tidak bisa dibuat. Periksa izin folder."$'\n'
+                          else
+                            PETUNJUK="${PETUNJUK}  ${relatif} -> $(echo "$jawaban" | head -1)"$'\n'
+                          fi
                         fi
                       done
 
@@ -255,10 +280,14 @@ jobs:
                         printf '%s\n' "${RUSAK[@]}"
                         echo "</pre></details>"
                         echo ""
-                        echo "Unggah manual lewat File Manager TinkerHost:"
+                        echo "### Balasan server"
+                        echo ""
                         echo '```'
-                        printf '  %s\n' "${RUSAK[@]}"
+                        printf '%s' "$PETUNJUK"
                         echo '```'
+                        echo ""
+                        echo "Kalau server menolak, hapus file tersebut lewat **File Manager**"
+                        echo "TinkerHost, lalu jalankan ulang workflow."
                       } >> "$GITHUB_STEP_SUMMARY"
 
                       echo "::error::${#GAGAL[@]} file gagal setelah $MAKS_PASS percobaan."

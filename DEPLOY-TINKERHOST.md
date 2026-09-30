@@ -20,13 +20,11 @@ Anda, lalu di-upload dari komputer memakai FTP.** Isi yang terkirim diambil
 dengan `git archive`, jadi **persis sama dengan isi repository** — tidak ada
 selisih antara yang di-commit dan yang online.
 
-Semua itu sudah diotomatisasi oleh `tools/deploy.ps1`.
+Semua itu sudah diotomatisasi oleh GitHub Actions.
 
 ---
 
-## Alur kerja (ringkas)
-
-### Cara A — GitHub Actions (otomatis, disarankan)
+## Alur kerja GitHub Actions (otomatis)
 
 Setiap `git push` ke branch `main` langsung meng-upload ke hosting. Tidak
 perlu menjalankan apa pun di komputer setelah push.
@@ -65,16 +63,6 @@ Cara memastikan: login FTP, lihat isi folder. Folder yang **sudah berisi
 website lama** Anda adalah yang benar. Kalau upload ke `/htdocs` tapi
 websitenya tidak muncul, cek `/namadomain/htdocs`.
 
-Untuk menguji sebelum meng-upload apa pun:
-
-```bash
-powershell -ExecutionPolicy Bypass -File tools\deploy.ps1 -TesKoneksi
-```
-
-Perintah ini hanya mengecek koneksi dan menampilkan isi folder tujuan, lalu
-keluar. Kalau folder salah, Anda tahu dalam 3 detik — bukan setelah puluhan
-file gagal.
-
 4. Setelah itu, jalurnya jadi:
 
 ```bash
@@ -83,37 +71,19 @@ git commit -m "perbaikan halaman kontak"
 git push          # <- deploy berjalan sendiri
 ```
 
-Untuk mencoba tanpa meng-upload: tab **Actions -> Deploy ke TinkerHost ->
-Run workflow**, biarkan `dry_run` tetap centang.
+Status deploy bisa dilihat di tab **Actions** pada repository Anda.
 
-Semua hasil deploy (jumlah file, daftar berkas gagal) muncul di ringkasan
-run, jadi tidak perlu membuka log panjang.
 
-### Cara B — Unggah dari komputer
-
-Kalau sedang offline, atau ingin meng-upload sebelum GitHub aktif:
-
-```bash
-copy tools\deploy.config.example.json tools\deploy.config.json
-# isi datanya, lalu:
-powershell -ExecutionPolicy Bypass -File tools\deploy.ps1 -DryRun
-powershell -ExecutionPolicy Bypass -File tools\deploy.ps1
-```
-
-> Password FTP disimpan di `deploy.config.json` yang sudah masuk `.gitignore`.
-> Kalau memakai Cara A, kredensial disimpan sebagai *secret* GitHub, bukan di
-> dalam repository — repo publik tidak pernah memuatnya.
 
 ### Isi yang terkirim
 
-Cara A dan Cara B memakai `git archive`, jadi hasilnya identik.
+Proses deploy hanya mengirim file yang diperlukan untuk menjalankan website.
 
-| Dikirim (dari git) | Tidak dikirim |
+| Dikirim | Tidak dikirim (dikecualikan) |
 |---|---|
-| Semua halaman PHP, CSS, JS | `config/config.php` (isi password DB) |
-| Semua `.htaccess` (4 buah) | `backups/` (arsip lokal) |
-| Semua gambar di `assets/img` | `.git/` |
-| `tools/deploy.ps1` | `tools/deploy.config.json` |
+| Semua file PHP, CSS, JS | `config/config.php` (isi password DB) |
+| Semua `.htaccess` (4 buah) | `backups/` (arsip lokal), `.git/`, `.github/` |
+| Semua gambar di `assets/img` | `tools/`, berkas `*.md`, dan `*.sql` |
 
 > **Catatan:** tidak ada berkas yang dihapus di server. Kalau Anda menghapus
 > sebuah file dari git, hapus juga manual lewat File Manager.
@@ -126,7 +96,7 @@ Cara A dan Cara B memakai `git archive`, jadi hasilnya identik.
 |---|---|
 | Akun TinkerHost | Gratis, tapi butuh minimal 5 pengunjung/bulan |
 | File project | Folder `moma_bread` (siap di-commit, tanpa `config.php`) |
-| `deploy-moma_bread.sql` | Berisi seluruh tabel + data awal |
+| `file_backup_anda.sql` | Berisi seluruh tabel + data awal (hasil export) |
 | Git | Sudah terpasang, untuk `commit` dan `push` |
 
 > **Jangan pernah commit `config/config.php` ke git.** File itu berisi
@@ -136,14 +106,9 @@ Cara A dan Cara B memakai `git archive`, jadi hasilnya identik.
 
 ## 1. Upload file project
 
-**Cara tercepat: pakai skrip.** Lihat bagian "Alur kerja" di atas.
+**Cara tercepat: otomatis via GitHub Actions.** Lihat bagian "Alur kerja" di atas.
 
-```bash
-powershell -ExecutionPolicy Bypass -File tools\deploy.ps1
-```
-
-Kalau lebih suka upload manual lewat **File Manager** atau **FTP**, ikut
-langkah di bawah.
+Kalau lebih suka upload manual lewat **File Manager** atau aplikasi **FTP** (seperti FileZilla), ikut langkah di bawah.
 
 Upload ke folder **`htdocs`** (paket gratis). Kalau website Anda berada di
 subdomain, foldernya berbentuk `/namadomain/htdocs`.
@@ -214,14 +179,14 @@ define('DB_PASS', 'password-anda');
 
 **cPanel -> phpMyAdmin**, pilih database yang tadi dibuat, tab **Import**.
 
-- Pilih file `deploy-moma_bread.sql`
+- Pilih file `.sql` Anda
 - Klik **Go**, tunggu sampai muncul pesan hijau
 
 File ini ukurannya kecil, jadi seharusnya aman. Kalau tetap gagal karena
 batas waktu phpMyAdmin, coba lewat menu **Terminal** di cPanel:
 
 ```bash
-mysql -u thsi_12345678_pengguna -p thsi_12345678_momabread < deploy-moma_bread.sql
+mysql -u thsi_12345678_pengguna -p thsi_12345678_momabread < file_backup_anda.sql
 ```
 
 ---

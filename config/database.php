@@ -105,7 +105,7 @@ function db_connection_error_page(PDOException $e): void
         cPanel ke <code>config/config.php</code>.</li>
     <li>Di TinkerHost, host MySQL umumnya berbentuk
         <code>sqlxxx.thsite.top</code> &mdash; <strong>bukan</strong> <code>localhost</code>.</li>
-    <li>Pastikan tabel sudah ada: import <code>deploy-moma_bread.sql</code> lewat phpMyAdmin.</li>
+    <li>Pastikan tabel sudah ada dengan melakukan import file backup <code>.sql</code> lewat phpMyAdmin.</li>
   </ol>
 
   <p>Pesan error dari server:</p>

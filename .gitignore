@@ -14,8 +14,7 @@ backups/
 # Dibuat otomatis oleh install.php, status lokal tiap mesin.
 install.lock
 
-# Kredensial FTP untuk tools/deploy.ps1 - berisi password.
-tools/deploy.config.json
+
 
 # --- Sistem operasi & editor -------------------------------------------
 .DS_Store

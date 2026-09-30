@@ -36,4 +36,3 @@ jobs:
           .github/**
           DEPLOY-TINKERHOST.md
           README.md
-          deploy-moma_bread.sql

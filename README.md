@@ -44,44 +44,13 @@ git commit -m "perubahan"
 git push
 ```
 
-Skrip deploy mengambil file langsung dari git lewat `git archive`, jadi yang online
-selalu sama dengan yang sudah di-commit. `config/config.php` tidak pernah
-ikut terkirim.
-
-### Gambar diunggah manual
-
-Deploy **secara bawaan melewati folder `assets/img/`**. Alasannya, berkas
-gambar adalah yang paling sering ditolak server TinkerHost (balasan `451`),
-sementara seluruh file inti kecil dan selalu berhasil.
-
-| | Ikut deploy? |
-|---|---|
-| PHP, CSS, JS, `.htaccess` | Ya |
-| `assets/img/` (logo, banner, galeri, uploads) | **Tidak** — unggah manual |
-
-Saat Anda butuh gambar baru, unggah lewat **File Manager** TinkerHost ke
-folder yang sama (`htdocs/assets/img/uploads`). Nama berkas tidak berubah,
-jadi tidak perlu sentuh kode.
-
-Kalau suatu saat ingin gambar ikut otomatis, jalankan workflow manual dan
-centang **Lewati gambar** ke OFF.
+Proses deploy menggunakan GitHub Actions, sehingga kode yang online selalu
+sinkron dengan branch `main`. Beberapa file/folder khusus (seperti
+`config/config.php`, `tools/`, `backups/`, dan file `.md`) tidak akan ikut
+dikirim (lihat file `deploy.yml` untuk daftar pastinya). Seluruh gambar di `assets/img` juga akan otomatis ter-upload jika ada perubahan.
 
 > TinkerHost tidak menyediakan terminal/SSH, jadi `git pull` di server tidak
-> bisa dipakai. Git dipakai di komputer atau GitHub, lalu di-upload lewat FTP.
-
-## Upgrade dari Versi 1-Tingkat
-
-Bila aplikasi Anda sebelumnya memakai menu 1 tingkat (menu langsung punya harga),
-jalankan **`database/upgrade_1_jenis_rote.sql`** satu kali lewat phpMyAdmin
-(tab **Import**) atau CLI:
-
-```
-mysql -u root < database/upgrade_1_jenis_rote.sql
-```
-
-Skrip tersebut membuat tabel `jenis_rote`, memindahkan data lama ke struktur baru,
-lalu menghapus kolom `price` dan `category` dari tabel `menu`. Struktur dan isi
-akhirnya akan sama persis dengan `database/momabread.sql`.
+> bisa dipakai. Karenanya, GitHub Actions digunakan untuk mengunggah perubahan secara otomatis lewat FTP.
 
 ## Kebutuhan Sistem
 
@@ -119,7 +88,7 @@ cp config/config.example.php config/config.php        # Linux/Mac
 
 1. Letakkan folder ini di `C:\xampp\htdocs\moma_bread`, lalu jalankan **Apache** dan **MySQL** di XAMPP.
 2. Salin `config/config.example.php` menjadi `config/config.php` bila belum ada.
-3. Import `database/momabread.sql` melalui phpMyAdmin (`http://localhost/phpmyadmin`).
+3. Import database Anda (file `.sql`) melalui phpMyAdmin (`http://localhost/phpmyadmin`).
 4. Buka `http://localhost/moma_bread/install.php`, isi akun admin, klik **Pasang Sekarang**.
 5. **Hapus `install.php` dan `install.lock`** setelah selesai.
 
@@ -170,9 +139,9 @@ moma_bread/
     └── .htaccess          Cegah akses langsung ke folder ini
 ```
 
-> Folder `database/` (berkas .sql) dan `install.php` sengaja tidak ada di
-> repository ini karena tidak dibutuhkan saat website sudah berjalan.
-> Gunakan fitur **Backup Database** di panel admin untuk membuat salinan .sql.
+> File `install.php` sengaja tidak ada di repository ini karena tidak dibutuhkan
+> lagi setelah website berjalan. Gunakan fitur **Backup Database** di panel
+> admin untuk membuat salinan .sql secara rutin.
 
 ## Struktur Menu (2 Tingkat)
 
@@ -212,8 +181,8 @@ menyediakan `mod_rewrite`, cukup ubah `PRETTY_MENU_URL` menjadi `false` di
 ## Menambah Entitas / Kolom Baru
 
 Seluruh CRUD dibangun dari satu berkas: `admin/_schema.php`.
-Tambah blok baru di `admin_entities()` (bersama `CREATE TABLE` baru di
-`database/momabread.sql`) dan menu admin otomatis muncul - tanpa menulis
+Tambah blok baru di `admin_entities()` (bersama eksekusi `CREATE TABLE` baru
+di database) dan menu admin otomatis muncul - tanpa menulis
 kode list/form/hapus yang berulang.
 
 ## Keamanan

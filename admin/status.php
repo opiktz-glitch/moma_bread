@@ -140,7 +140,7 @@ function status_db_checks(): array
             $hilang ? 'bad' : 'ok',
             $hilang
                 ? 'Tabel belum ada: ' . implode(', ', $hilang)
-                  . '. Import deploy-moma_bread.sql lewat phpMyAdmin.'
+                  . '. Lakukan import file backup .sql Anda lewat phpMyAdmin.'
                 : 'Tabel inti lengkap: ' . implode(', ', $wajib) . '.'
         );
 

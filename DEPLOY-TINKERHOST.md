@@ -26,50 +26,65 @@ Semua itu sudah diotomatisasi oleh `tools/deploy.ps1`.
 
 ## Alur kerja (ringkas)
 
+### Cara A — GitHub Actions (otomatis, disarankan)
+
+Setiap `git push` ke branch `main` langsung meng-upload ke hosting. Tidak
+perlu menjalankan apa pun di komputer setelah push.
+
+Syarat: isi 4 secret di GitHub **satu kali**.
+
+1. Buka repo `github.com/opiktz-glitch/moma_bread`
+2. **Settings -> Secrets and variables -> Actions**
+3. Klik **New repository secret**, buat 4 buah:
+
+| Nama secret | Isi | Asal |
+|---|---|---|
+| `FTP_HOST` | mis. `ftp.tinkerhost.com` | cPanel -> FTP Accounts |
+| `FTP_USER` | `thsi_12345678` | cPanel -> FTP Accounts |
+| `FTP_PASS` | password FTP | cPanel -> FTP Accounts |
+| `FTP_PATH` | `/public_html/moma_bread` | tujuan folder di server |
+
+4. Setelah itu, jalurnya jadi:
+
 ```bash
-# 1. Ubah kode seperti biasa
-# 2. Simpan ke git
 git add .
-git commit -m "perbaiki halaman kontak"
-git push
-
-# 3. Upload ke hosting
-powershell -ExecutionPolicy Bypass -File tools\deploy.ps1
+git commit -m "perbaikan halaman kontak"
+git push          # <- deploy berjalan sendiri
 ```
 
-Uji dulu tanpa mengirim apa pun:
+Untuk mencoba tanpa meng-upload: tab **Actions -> Deploy ke TinkerHost ->
+Run workflow**, biarkan `dry_run` tetap centang.
 
-```bash
-powershell -ExecutionPolicy Bypass -File tools\deploy.ps1 -DryRun
-```
+Semua hasil deploy (jumlah file, daftar berkas gagal) muncul di ringkasan
+run, jadi tidak perlu membuka log panjang.
 
-### Setup sekali saja
+### Cara B — Unggah dari komputer
+
+Kalau sedang offline, atau ingin meng-upload sebelum GitHub aktif:
 
 ```bash
 copy tools\deploy.config.example.json tools\deploy.config.json
+# isi datanya, lalu:
+powershell -ExecutionPolicy Bypass -File tools\deploy.ps1 -DryRun
+powershell -ExecutionPolicy Bypass -File tools\deploy.ps1
 ```
 
-Lalu isi `ftpHost`, `ftpUser`, `ftpPass`, dan `ftpPath` dengan data dari
-**cPanel -> FTP Accounts**. `deploy.config.json` sudah masuk `.gitignore`,
-jadi password FTP tidak ikut ter-push.
+> Password FTP disimpan di `deploy.config.json` yang sudah masuk `.gitignore`.
+> Kalau memakai Cara A, kredensial disimpan sebagai *secret* GitHub, bukan di
+> dalam repository — repo publik tidak pernah memuatnya.
 
-| Kolom | Isi |
-|---|---|
-| `ftpHost` | Dari cPanel, mis. `ftp.tinkerhost.com` |
-| `ftpUser` | Username FTP Anda, biasanya `thsi_12345678` |
-| `ftpPass` | Password FTP (bukan password MySQL) |
-| `ftpPath` | `/public_html` atau `/public_html/moma_bread` |
+### Isi yang terkirim
 
-### Apa yang terkirim, dan apa yang tidak
+Cara A dan Cara B memakai `git archive`, jadi hasilnya identik.
 
 | Dikirim (dari git) | Tidak dikirim |
 |---|---|
 | Semua halaman PHP, CSS, JS | `config/config.php` (isi password DB) |
 | Semua `.htaccess` (4 buah) | `backups/` (arsip lokal) |
 | Semua gambar di `assets/img` | `.git/` |
-| `DEPLOY-TINKERHOST.md`, `README.md` | `tools/deploy.config.json` |
+| `tools/deploy.ps1` | `tools/deploy.config.json` |
 
-> **Catatan:** skrip tidak menghapus berkas di server. Kalau Anda menghapus
+> **Catatan:** tidak ada berkas yang dihapus di server. Kalau Anda menghapus
 > sebuah file dari git, hapus juga manual lewat File Manager.
 
 ---

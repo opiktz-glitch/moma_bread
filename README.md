@@ -36,21 +36,27 @@ dan dapat dikelola dari **panel admin** tanpa menyentuh kode.
 Panduan lengkap untuk hosting gratis **TinkerHost** ada di
 [`DEPLOY-TINKERHOST.md`](DEPLOY-TINKERHOST.md).
 
-Cara rutin memperbarui website:
+Cara rutin memperbarui website — cukup `git push`, sisanya otomatis:
 
 ```bash
 git add .
 git commit -m "perubahan"
 git push
+```
+
+Deploy/upload diambil langsung dari git lewat `git archive`, jadi yang online
+selalu sama dengan yang sudah di-commit. `config/config.php` tidak pernah
+ikut terkirim.
+
+Kalau sedang offline, bisa tetap unggah dari komputer:
+
+```bash
+powershell -ExecutionPolicy Bypass -File tools\deploy.ps1 -DryRun
 powershell -ExecutionPolicy Bypass -File tools\deploy.ps1
 ```
 
-Skrip deploy mengambil file langsung dari git lewat `git archive`, jadi yang
-online selalu sama dengan yang sudah di-commit. `config/config.php` tidak
-pernah ikut terkirim.
-
 > TinkerHost tidak menyediakan terminal/SSH, jadi `git pull` di server tidak
-> bisa dipakai. Git dipakai di komputer, lalu di-upload lewat FTP.
+> bisa dipakai. Git dipakai di komputer atau GitHub, lalu di-upload lewat FTP.
 
 ## Upgrade dari Versi 1-Tingkat
 

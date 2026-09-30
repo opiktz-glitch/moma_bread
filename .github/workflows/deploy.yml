@@ -135,97 +135,153 @@ jobs:
           FTP_PASS: ${{ secrets.FTP_PASS }}
           FTP_PATH: ${{ secrets.FTP_PATH }}
         run: |
-          set -uo pipefail
+                    # --user dipakai, bukan kredensial yang disisipkan ke URL, supaya
+                    # password dengan karakter khusus tetap aman.
+                    HOST="${FTP_HOST%/}"
+                    PATH_REMOTE="${FTP_PATH%/}"
+                    PERAKARAN="."
+                    SUKES=0
+                    GAGAL=0
+                    SISA=0
+                    BERKAS_GAGAL=""
+                    PERLU_DICEK=""
 
-          # --user dipakai, bukan kredensial yang disisipkan ke URL, supaya
-          # password dengan karakter khusus tetap aman.
-          HOST="${FTP_HOST%/}"
-          PATH_REMOTE="${FTP_PATH%/}"
-          SUKES=0
-          GAGAL=0
-          BERKAS_GAGAL=""
+                    # Jeda antar berkas. Tanpa ini, server bisa menolak sebagian
+                    # permintaan karena terlalu cepat. Gejalanya: "451" yang muncul
+                    # pada berkas BERBEDA tiap kali deploy.
+                    JJEDA="${DEPLOY_JEDA:-1}"
+                    MAKS_PASS=3
 
-          # Opsi bersama untuk setiap curl.
-          OPSI=(--user "$FTP_USER:$FTP_PASS" --ftp-create-dirs --ssl
-                --silent --show-error --fail --connect-timeout 20 --max-time 300)
+                    OPSI=(--user "$FTP_USER:$FTP_PASS" --ftp-create-dirs --ssl
+                          --silent --show-error --fail --connect-timeout 20 --max-time 300)
 
-          # Kirim satu berkas. Kalau gagal, coba hapus dulu file lama di
-          # server lalu ulangi - sebagian server menolak menimpa berkas
-          # yang sudah ada dan membalas 451.
-          kirim() {
-            berkas="$1"; relatif="$2"
-            tujuan="ftp://$HOST$PATH_REMOTE/$relatif"
+                    # Daftar berkas memakai baris baru, bukan null. Nama berkas di
+                    # project ini tidak mengandung baris baru, jadi ini aman dan
+                    # jauh lebih mudah dibaca daripada format null.
+                    DAFTAR="$(mktemp)"
+                    find . -type f -not -path './.git/*' | sed 's|^\./||' | sort > "$DAFTAR"
 
-            if curl "${OPSI[@]}" -T "$berkas" "$tujuan" 2>/tmp/galat-curl; then
-              return 0
-            fi
+                    # Unggah satu berkas. Mengembalikan:
+                    #   0 = langsung berhasil
+                    #   2 = berhasil setelah file lama dihapus dulu
+                    #   1 = gagal
+                    kirim() {
+                      relatif="$1"
+                      sumber="$PERAKARAN/$relatif"
 
-            curl --user "$FTP_USER:$FTP_PASS" --ssl \
-                 -Q "DELE $PATH_REMOTE/$relatif" \
-                 --list-only "ftp://$HOST/" >/dev/null 2>&1 || true
-            sleep 1
+                      if curl "${OPSI[@]}" -T "$sumber" "ftp://$HOST$PATH_REMOTE/$relatif" 2>/tmp/galat-curl; then
+                        return 0
+                      fi
 
-            if curl "${OPSI[@]}" -T "$berkas" "$tujuan" 2>/tmp/galat-curl; then
-              return 2
-            fi
+                      curl --user "$FTP_USER:$FTP_PASS" --ssl \
+                           -Q "DELE $PATH_REMOTE/$relatif" \
+                           --list-only "ftp://$HOST/" >/dev/null 2>&1 || true
+                      sleep 1
 
-            return 1
-          }
+                      if curl "${OPSI[@]}" -T "$sumber" "ftp://$HOST$PATH_REMOTE/$relatif" 2>/tmp/galat-curl; then
+                        return 2
+                      fi
 
-          while IFS= read -r -d '' berkas; do
-            relatif="${berkas#./}"
+                      return 1
+                    }
 
-            # PENTING: penjaga "|| hasil=$?" WAJIB ada. GitHub menjalankan
-            # skrip dengan bash -e (errexit). Tanpa penjaga ini, nilai balik
-            # non-nol dari fungsi akan langsung menghentikan seluruh skrip -
-            # termasuk saat retry justru BERHASIL (nilai balik 2).
-            hasil=0
-            kirim "$berkas" "$relatif" || hasil=$?
+                    # Beberapa pass. Berkas yang gagal dicoba ulang di pass
+                    # berikutnya dengan jeda yang makin lama, karena penyebabnya
+                    # sementara (server sedang sibuk), bukan file yang rusak.
+                    for PASS in $(seq 1 $MAKS_PASS); do
+                      [ -s "$DAFTAR" ] || break
 
-            if [ "$hasil" -eq 0 ]; then
-              SUKES=$((SUKES + 1))
-              echo "  [ok]    $relatif"
-            elif [ "$hasil" -eq 2 ]; then
-              SUKES=$((SUKES + 1))
-              echo "  [ok*]   $relatif  (file lama dihapus dulu, lalu unggah ulang)"
-            else
-              GAGAL=$((GAGAL + 1))
-              BERKAS_GAGAL="${BERKAS_GAGAL}${relatif}\n"
-              echo "  [GAGAL] $relatif"
-              # Buang peringatan --ssl, itu bukan penyebab kegagalan.
-              # "|| true" wajib: dengan pipefail + errexit, grep yang tidak
-              # menemukan apa pun akan menghentikan skrip.
-              grep -v -- 'insecure option' /tmp/galat-curl \
-                | grep -v -- '^Warning: instead' | sed 's/^/            /' || true
-            fi
+                      if [ "$PASS" -gt 1 ]; then
+                        echo ""
+                        echo "  -- Pass $PASS: mencoba ulang $($DAFTAR | wc -l) berkas --"
+                      fi
 
-          done < <(find . -type f -not -path './.git/*' -print0)
-          {
-            echo "### Hasil deploy"
-            echo ""
-            echo "- Berhasil: **$SUKES** file"
-            echo "- Gagal: **$GAGAL** file"
-          } >> "$GITHUB_STEP_SUMMARY"
+                    # PENTING: pakai $(cat ...), bukan BERIKUT="$DAFTAR".
+                    # Yang terakhir hanya menyalin NAMA FILE, bukan isi daftar.
+                    BERIKUT="$(cat "$DAFTAR")"
+                    : > "$DAFTAR"
 
-          if [ "$GAGAL" -gt 0 ]; then
-            {
-              echo ""
-              echo "<details><summary>Berkas gagal</summary><pre>"
-              printf "$BERKAS_GAGAL"
-              echo "</pre></details>"
-            } >> "$GITHUB_STEP_SUMMARY"
-            echo "::error::$GAGAL file gagal di-upload."
-            exit 1
-          fi
+                      while IFS= read -r relatif; do
+                        [ -z "$relatif" ] && continue
 
-          {
-            echo ""
-            echo "### Langkah manual (sekali saja, di server)"
-            echo ""
-            echo "1. Pastikan \`config/config.php\` sudah dibuat dan diisi kredensial DB"
-            echo "2. Import \`deploy-moma_bread.sql\` lewat phpMyAdmin"
-            echo "3. Set izin 755 untuk \`assets/img/uploads\` dan \`backups\`"
-            echo "4. Login ke \`/admin\`, buka menu **Status Server**"
-          } >> "$GITHUB_STEP_SUMMARY"
+                        hasil=0
+                        kirim "$relatif" || hasil=$?
 
-          echo "Selesai: $SUKES file terkirim."
+                        if [ "$hasil" -eq 0 ]; then
+                          SUKES=$((SUKES + 1))
+                          [ "$PASS" -eq 1 ] && echo "  [ok]    $relatif"
+                        elif [ "$hasil" -eq 2 ]; then
+                          SUKES=$((SUKES + 1))
+                          echo "  [ok*]   $relatif  (file lama dihapus dulu)"
+                        else
+                          BERIKUT="$BERIKUT"
+                          echo "$relatif" >> "$DAFTAR"
+                          if [ "$PASS" -eq 1 ]; then
+                            echo "  [GAGAL] $relatif (akan dicoba lagi)"
+                          fi
+                        fi
+
+                        [ "$JJEDA" != "0" ] && sleep "$JJEDA"
+                      done <<< "$BERIKUT"
+                    done
+
+                    # Berkas yang masih gagal setelah semua pass. PENTING: curl
+                    # kode 18 berarti transfer TERPUTUS SEBAGIAN, jadi berkas di
+                    # server bisa jadi rusak. Ukuran remotely dibandingkan dengan
+                    # lokal supaya ketahuan.
+                    if [ -s "$DAFTAR" ]; then
+                      GAGAL=$(wc -l < "$DAFTAR")
+                      PERLU_DICEK="$DAFTAR"
+
+                      while IFS= read -r relatif; do
+                        [ -z "$relatif" ] && continue
+                        lokal=$(stat -c%s "$PERAKARAN/$relatif" 2>/dev/null || echo 0)
+                        jarak=$(curl --user "$FTP_USER:$FTP_PASS" --ssl --list-only \
+                                  "ftp://$HOST$PATH_REMOTE/$relatif" 2>/dev/null \
+                                | awk 'NR==1 {print $5}')
+
+                        if [ -n "$jarak" ] && [ "$jarak" = "$lokal" ]; then
+                          echo "  [CEK]   $relatif - ukuran di server sudah benar ($jarak byte)"
+                        else
+                          echo "  [RUSAK] $relatif - lokal $lokal byte, server ${jarak:-tidak terbaca}"
+                          PERLU_DICEK="$PERLU_DICEK$relatif"$'\n'
+                        fi
+                      done <<< "$DAFTAR"
+                    fi
+
+                    {
+                      echo "### Hasil deploy"
+                      echo ""
+                      echo "- Berhasil: **$SUKES** file"
+                      echo "- Gagal: **$GAGAL** file"
+                    } >> "$GITHUB_STEP_SUMMARY"
+
+                    if [ "$GAGAL" -gt 0 ]; then
+                      {
+                        echo ""
+                        echo "<details><summary>Berkas gagal setelah $MAKS_PASSx percobaan</summary><pre>"
+                        cat "$DAFTAR"
+                        echo "</pre></details>"
+                        echo ""
+                        echo "Unggah manual berkas ini lewat File Manager TinkerHost:"
+                        echo '```'
+                        while IFS= read -r r; do [ -n "$r" ] && echo "  $r"; done <<< "$DAFTAR"
+                        echo '```'
+                      } >> "$GITHUB_STEP_SUMMARY"
+                      echo "::error::$GAGAL file gagal setelah $MAKS_PASS percobaan."
+                      exit 1
+                    fi
+
+                    rm -f "$DAFTAR"
+
+                    {
+                      echo ""
+                      echo "### Langkah manual (sekali saja, di server)"
+                      echo ""
+                      echo "1. Pastikan \`config/config.php\` sudah dibuat dan diisi kredensial DB"
+                      echo "2. Import \`deploy-moma_bread.sql\` lewat phpMyAdmin"
+                      echo "3. Set izin 755 untuk \`assets/img/uploads\` dan \`backups\`"
+                      echo "4. Login ke \`/admin\`, buka menu **Status Server**"
+                    } >> "$GITHUB_STEP_SUMMARY"
+
+                    echo "Selesai: $SUKES file terkirim."

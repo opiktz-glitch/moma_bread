@@ -152,10 +152,11 @@ foreach ($f in $files) {
     $rel    = $f.FullName.Substring($workDir.Length + 1).Replace('\', '/')
     $tujuan = "$ftpUrl$root/$rel"
 
-    # -T = upload file, --ftp-create-dirs = buat folder di server otomatis
+    # --ssl berarti "coba TLS, jatuh ke koneksi biasa bila server tidak
+    # mendukungnya". Opsi --ftp-ssl-optional tidak pernah ada di curl.
     $out = & curl.exe --silent --show-error --fail `
                        --ftp-create-dirs `
-                       --ftp-ssl-optional `
+                       --ssl `
                        --connect-timeout 20 `
                        --max-time 300 `
                        -T $f.FullName $tujuan 2>&1

@@ -115,9 +115,12 @@ jobs:
           while IFS= read -r -d '' berkas; do
             relatif="${berkas#./}"
 
+            # --ssl berarti "coba TLS, jatuh ke koneksi biasa bila server
+            # tidak mendukungnya". Jangan pakai --ftp-ssl-optional, opsi
+            # itu memang tidak pernah ada di curl.
             if curl --user "$FTP_USER:$FTP_PASS" \
                     --ftp-create-dirs \
-                    --ftp-ssl-optional \
+                    --ssl \
                     --silent --show-error --fail \
                     --connect-timeout 20 \
                     --max-time 300 \

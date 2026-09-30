@@ -79,7 +79,7 @@ if ($dbReady) {
 }
 
 $waDefault = wa_link();
-$pageTitle = s('site_name', 'Moma Bread') . ' â€“ ' . s('site_tagline', 'Roti Hangat Rasa Rumahan');
+$pageTitle = s('site_name', 'Moma Bread') . ' - ' . s('site_tagline', 'Roti Hangat Rasa Rumahan');
 
 $bodyClass = 'home';
 require __DIR__ . '/includes/header.php';

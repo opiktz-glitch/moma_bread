@@ -18,10 +18,16 @@
 .PARAMETER DryRun
     Hanya menampilkan daftar file yang akan di-upload, tanpa mengirim.
 
+.PARAMETER TesKoneksi
+    Hanya mengecek apakah koneksi berhasil dan folder tujuan ada.
+    Jalankan ini lebih dulu kalau belum pernah deploy - jauh lebih cepat
+    daripada gagal di tengah upload dozens file.
+
 .PARAMETER Config
     Lokasi file konfigurasi. Default: tools/deploy.config.json
 
 .EXAMPLE
+    .\tools\deploy.ps1 -TesKoneksi
     .\tools\deploy.ps1 -DryRun
     .\tools\deploy.ps1
 #>
@@ -29,6 +35,7 @@
 [CmdletBinding()]
 param(
     [switch]$DryRun,
+    [switch]$TesKoneksi,
     [string]$Config
 )
 
@@ -87,6 +94,60 @@ foreach ($k in @('ftpHost', 'ftpUser', 'ftpPass', 'ftpPath')) {
 
 $ftpUrl = 'ftp://{0}:{1}@{2}/' -f $cfg.ftpUser, $cfg.ftpPass, $cfg.ftpHost
 $root   = ([string]$cfg.ftpPath).TrimEnd('/')
+
+# ---------------------------------------------------------------------------
+#  2b. Tes koneksi (opsional, tapi sangat disarankan untuk deploy pertama)
+# ---------------------------------------------------------------------------
+#
+#  Path folder adalah kesalahan paling sering terjadi: TinkerHost Free
+#  memakai "htdocs", sedangkan "public_html" hanya untuk paket Pro.
+#  Salah path => semua file gagal. Tes ini membuatnya jelas dalam detik.
+
+if ($TesKoneksi) {
+    Write-Host ''
+    Write-Host '  Menguji koneksi FTP ...' -ForegroundColor Cyan
+
+    # Daftar isi folder tujuan. Kalau path salah, server akan bilang 550.
+    $uji = & curl.exe --silent --show-error --fail `
+                      --ssl --list-only "$ftpUrl$root/" 2>&1
+
+    if ($LASTEXITCODE -eq 0) {
+        $isi = @($uji | Where-Object { $_ -and $_ -notmatch '^\s*(Connected|220|226|150|221|230|331)\b' })
+
+        Write-Host "  Koneksi  : berhasil ke $($cfg.ftpHost)" -ForegroundColor Green
+        Write-Host "  Folder   : $root (ada)" -ForegroundColor Green
+
+        if ($isi.Count) {
+            Write-Host '  Isi folder:' -ForegroundColor DarkGray
+            $isi | Select-Object -First 12 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+            if ($isi.Count -gt 12) {
+                Write-Host "    ... dan $($isi.Count - 12) lagi" -ForegroundColor DarkGray
+            }
+        } else {
+            Write-Host '  (folder kosong - normal untuk website yang baru)' -ForegroundColor DarkGray
+        }
+
+        Write-Host ''
+        Write-Host '  Folder tujuan sudah benar. Jalankan tanpa -TesKoneksi untuk upload.' -ForegroundColor Green
+        exit 0
+    }
+
+    $pesan = ($uji | Out-String).Trim()
+
+    Write-Host "  Koneksi  : GAGAL" -ForegroundColor Red
+    Write-Host "  Pesan    : $pesan" -ForegroundColor DarkRed
+    Write-Host ''
+    Write-Host '  Kemungkinan penyebab:' -ForegroundColor Yellow
+    Write-Host '   - Password atau username salah' -ForegroundColor Yellow
+    Write-Host '   - Host salah. TinkerHost Free memakai ftpupload.net,' -ForegroundColor Yellow
+    Write-Host '     TinkerHost Pro memakai ftp.pro.tinkerhost.net' -ForegroundColor Yellow
+    Write-Host '   - Folder tujuan tidak ada. TinkerHost Free memakai "htdocs",' -ForegroundColor Yellow
+    Write-Host '     bukan "public_html". Coba: /htdocs' -ForegroundColor Yellow
+    Write-Host ''
+    Write-Host '  Cara cepat cek folder: login ke File Manager TinkerHost,' -ForegroundColor Cyan
+    Write-Host '  lalu lihat folder mana yang sudah berisi website Anda.' -ForegroundColor Cyan
+    exit 1
+}
 
 # ---------------------------------------------------------------------------
 #  3. Siapkan isi dari git

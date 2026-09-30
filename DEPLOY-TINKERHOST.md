@@ -39,10 +39,41 @@ Syarat: isi 4 secret di GitHub **satu kali**.
 
 | Nama secret | Isi | Asal |
 |---|---|---|
-| `FTP_HOST` | mis. `ftp.tinkerhost.com` | cPanel -> FTP Accounts |
-| `FTP_USER` | `thsi_12345678` | cPanel -> FTP Accounts |
-| `FTP_PASS` | password FTP | cPanel -> FTP Accounts |
-| `FTP_PATH` | `/public_html/moma_bread` | tujuan folder di server |
+| `FTP_HOST` | `ftpupload.net` | **TinkerHost Free** |
+| `FTP_USER` | `thsi_12345678` | username akun Anda |
+| `FTP_PASS` | password akun | **bukan** password MySQL |
+| `FTP_PATH` | `/htdocs` | lihat tabel folder di bawah |
+
+> **Penting — perbedaan paket Free dan Pro.** Nilai di atas untuk paket
+> **gratis**. Kalau suatu saat Anda naik ke TinkerHost Pro, host berubah jadi
+> `ftp.pro.tinkerhost.net` dan folder jadi `public_html`.
+
+| | TinkerHost Free (gratis) | TinkerHost Pro (berbayar) |
+|---|---|---|
+| FTP host | `ftpupload.net` | `ftp.pro.tinkerhost.net` |
+| Folder web | **`htdocs`** | `public_html` |
+| Port | 21 | 21 |
+
+### Folder tujuan mana yang benar?
+
+| Lokasi website Anda | `FTP_PATH` |
+|---|---|
+| Domain utama akun | `/htdocs` |
+| Subdomain | `/namadomain/htdocs` |
+
+Cara memastikan: login FTP, lihat isi folder. Folder yang **sudah berisi
+website lama** Anda adalah yang benar. Kalau upload ke `/htdocs` tapi
+websitenya tidak muncul, cek `/namadomain/htdocs`.
+
+Untuk menguji sebelum meng-upload apa pun:
+
+```bash
+powershell -ExecutionPolicy Bypass -File tools\deploy.ps1 -TesKoneksi
+```
+
+Perintah ini hanya mengecek koneksi dan menampilkan isi folder tujuan, lalu
+keluar. Kalau folder salah, Anda tahu dalam 3 detik — bukan setelah puluhan
+file gagal.
 
 4. Setelah itu, jalurnya jadi:
 
@@ -114,9 +145,11 @@ powershell -ExecutionPolicy Bypass -File tools\deploy.ps1
 Kalau lebih suka upload manual lewat **File Manager** atau **FTP**, ikut
 langkah di bawah.
 
-Upload ke folder `public_html`. Kalau mau memakai subdomain sendiri
-(mis. `momabread.tinkerhost.net`), buat folder bernama `momabread` di
-dalam `public_html` dan upload ke sana. Keduanya bisa jalan.
+Upload ke folder **`htdocs`** (paket gratis). Kalau website Anda berada di
+subdomain, foldernya berbentuk `/namadomain/htdocs`.
+
+> Paket **Pro** memakai folder berbeda, yaitu `public_html`. Pastikan dulu
+> paket Anda yang mana sebelum upload.
 
 ### Berkas yang WAJIB ikut terunggah
 

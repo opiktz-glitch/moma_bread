@@ -94,6 +94,39 @@ jobs:
 
           echo "Secret lengkap. Host: $FTP_HOST, tujuan: $FTP_PATH"
 
+      - name: Periksa folder tujuan
+        if: ${{ github.event_name == 'push' || inputs.dry_run != true }}
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          FTP_PATH: ${{ secrets.FTP_PATH }}
+        run: |
+          set -uo pipefail
+
+          # Folder tujuan adalah kesalahan paling sering: TinkerHost Free
+          # memakai "htdocs", sedangkan "public_html" hanya untuk paket Pro.
+          # Salah path membuat SEMUA file gagal, jadi dicek lebih dulu.
+          if curl --user "$FTP_USER:$FTP_PASS" \
+                  --ssl --list-only "ftp://$FTP_HOST/${FTP_PATH%/}/" 2>/tmp/galat-folder; then
+            echo "Folder $FTP_PATH ada dan bisa diakses."
+          else
+            echo "::error::Folder '$FTP_PATH' tidak bisa diakses di $FTP_HOST"
+            sed 's/^/  /' /tmp/galat-folder
+            {
+              echo ""
+              echo "### Folder tujuan tidak ditemukan"
+              echo ""
+              echo "| Paket | FTP host | Folder |"
+              echo "|---|---|---|"
+              echo "| Free (gratis) | \`ftpupload.net\` | \`/htdocs\` |"
+              echo "| Pro (berbayar) | \`ftp.pro.tinkerhost.net\` | \`/public_html\` |"
+              echo ""
+              echo "Perbaiki secret \`FTP_PATH\`, lalu jalankan ulang."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
       - name: Kirim lewat FTP
         if: ${{ github.event_name == 'push' || inputs.dry_run != true }}
         env:

@@ -175,8 +175,12 @@ jobs:
           while IFS= read -r -d '' berkas; do
             relatif="${berkas#./}"
 
-            kirim "$berkas" "$relatif"
-            hasil=$?
+            # PENTING: penjaga "|| hasil=$?" WAJIB ada. GitHub menjalankan
+            # skrip dengan bash -e (errexit). Tanpa penjaga ini, nilai balik
+            # non-nol dari fungsi akan langsung menghentikan seluruh skrip -
+            # termasuk saat retry justru BERHASIL (nilai balik 2).
+            hasil=0
+            kirim "$berkas" "$relatif" || hasil=$?
 
             if [ "$hasil" -eq 0 ]; then
               SUKES=$((SUKES + 1))
@@ -189,11 +193,13 @@ jobs:
               BERKAS_GAGAL="${BERKAS_GAGAL}${relatif}\n"
               echo "  [GAGAL] $relatif"
               # Buang peringatan --ssl, itu bukan penyebab kegagalan.
+              # "|| true" wajib: dengan pipefail + errexit, grep yang tidak
+              # menemukan apa pun akan menghentikan skrip.
               grep -v -- 'insecure option' /tmp/galat-curl \
-                | grep -v -- '^Warning: instead' | sed 's/^/            /'
+                | grep -v -- '^Warning: instead' | sed 's/^/            /' || true
             fi
-          done < <(find . -type f -not -path './.git/*' -print0)
 
+          done < <(find . -type f -not -path './.git/*' -print0)
           {
             echo "### Hasil deploy"
             echo ""

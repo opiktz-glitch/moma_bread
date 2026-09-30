@@ -44,16 +44,27 @@ git commit -m "perubahan"
 git push
 ```
 
-Deploy/upload diambil langsung dari git lewat `git archive`, jadi yang online
+Skrip deploy mengambil file langsung dari git lewat `git archive`, jadi yang online
 selalu sama dengan yang sudah di-commit. `config/config.php` tidak pernah
 ikut terkirim.
 
-Kalau sedang offline, bisa tetap unggah dari komputer:
+### Gambar diunggah manual
 
-```bash
-powershell -ExecutionPolicy Bypass -File tools\deploy.ps1 -DryRun
-powershell -ExecutionPolicy Bypass -File tools\deploy.ps1
-```
+Deploy **secara bawaan melewati folder `assets/img/`**. Alasannya, berkas
+gambar adalah yang paling sering ditolak server TinkerHost (balasan `451`),
+sementara seluruh file inti kecil dan selalu berhasil.
+
+| | Ikut deploy? |
+|---|---|
+| PHP, CSS, JS, `.htaccess` | Ya |
+| `assets/img/` (logo, banner, galeri, uploads) | **Tidak** — unggah manual |
+
+Saat Anda butuh gambar baru, unggah lewat **File Manager** TinkerHost ke
+folder yang sama (`htdocs/assets/img/uploads`). Nama berkas tidak berubah,
+jadi tidak perlu sentuh kode.
+
+Kalau suatu saat ingin gambar ikut otomatis, jalankan workflow manual dan
+centang **Lewati gambar** ke OFF.
 
 > TinkerHost tidak menyediakan terminal/SSH, jadi `git pull` di server tidak
 > bisa dipakai. Git dipakai di komputer atau GitHub, lalu di-upload lewat FTP.

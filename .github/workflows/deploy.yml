@@ -20,6 +20,10 @@ on:
         description: "Mode latihan - daftar file tanpa meng-upload"
         type: boolean
         default: true
+      lewati_gambar:
+        description: "Lewati folder assets/img (disarankan: gambar diunggah manual)"
+        type: boolean
+        default: true
 
 # Cegah dua deploy berjalan bersamaan.
 concurrency:
@@ -134,6 +138,9 @@ jobs:
           FTP_USER: ${{ secrets.FTP_USER }}
           FTP_PASS: ${{ secrets.FTP_PASS }}
           FTP_PATH: ${{ secrets.FTP_PATH }}
+          # 1 = lewati gambar. Saat trigger push, "inputs" bernilai kosong
+          # sehingga 1 != false bernilai benar dan gambar tetap dilewati.
+          LEWATI_GAMBAR: ${{ inputs.lewati_gambar != false && '1' || '0' }}
         run: |
                     # --user dipakai, bukan kredensial yang disisipkan ke URL, supaya
                     # password dengan karakter khusus tetap aman.
@@ -155,7 +162,21 @@ jobs:
                     # Memakai berkas temp menimbulkan dua bug: file temp ikut dieksekusi
                     # saat dihitung barisnya, dan isinya bisa rusak sehingga path temp
                     # terbaca sebagai nama berkas.
-                    mapfile -t SISA < <(find . -type f -not -path './.git/*' | sed 's|^\./||' | sort)
+                    #
+                    # Gambar sengaja DILEWATI secara bawaan. Berkas gambar
+                    # paling sering ditolak server (balasan 451) dan ukurannya besar,
+                    # sementara file inti kecil dan selalu berhasil. Gambar diunggah
+                    # manual lewat File Manager, atau pakai LEWATI_GAMBAR=0.
+                    if [ "$LEWATI_GAMBAR" = "1" ]; then
+                      mapfile -t SISA < <(find . -type f \
+                                   -not -path './.git/*' \
+                                   -not -path './assets/img/*' \
+                                | sed 's|^\./||' | sort)
+                      jumlahGambar=$(find ./assets/img -type f 2>/dev/null | wc -l)
+                      echo "  Gambar dilewati: $jumlahGambar file (unggah manual lewat File Manager)"
+                    else
+                      mapfile -t SISA < <(find . -type f -not -path './.git/*' | sed 's|^\./||' | sort)
+                    fi
                     TOTAL_AWAL=${#SISA[@]}
 
                     # Unggah satu berkas. Mengembalikan:

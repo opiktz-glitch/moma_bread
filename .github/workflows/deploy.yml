@@ -135,35 +135,33 @@ jobs:
           FTP_PASS: ${{ secrets.FTP_PASS }}
           FTP_PATH: ${{ secrets.FTP_PATH }}
         run: |
+                    set -uo pipefail
                     # --user dipakai, bukan kredensial yang disisipkan ke URL, supaya
                     # password dengan karakter khusus tetap aman.
                     HOST="${FTP_HOST%/}"
                     PATH_REMOTE="${FTP_PATH%/}"
                     PERAKARAN="."
                     SUKES=0
-                    GAGAL=0
-                    SISA=0
-                    BERKAS_GAGAL=""
-                    PERLU_DICEK=""
 
-                    # Jeda antar berkas. Tanpa ini, server bisa menolak sebagian
-                    # permintaan karena terlalu cepat. Gejalanya: "451" yang muncul
-                    # pada berkas BERBEDA tiap kali deploy.
+                    # Jeda antar berkas dan jumlah percobaan. Tanpa jeda, server bisa
+                    # menolak sebagian permintaan karena terlalu cepat; gejalanya 451
+                    # yang muncul pada berkas BERBEDA tiap kali deploy.
                     JJEDA="${DEPLOY_JEDA:-1}"
                     MAKS_PASS=3
 
                     OPSI=(--user "$FTP_USER:$FTP_PASS" --ftp-create-dirs --ssl
                           --silent --show-error --fail --connect-timeout 20 --max-time 300)
 
-                    # Daftar berkas memakai baris baru, bukan null. Nama berkas di
-                    # project ini tidak mengandung baris baru, jadi ini aman dan
-                    # jauh lebih mudah dibaca daripada format null.
-                    DAFTAR="$(mktemp)"
-                    find . -type f -not -path './.git/*' | sed 's|^\./||' | sort > "$DAFTAR"
+                    # Daftar berkas disimpan di ARRAY, bukan di berkas temporary.
+                    # Alasannya: memakai berkas temp menimbulkan dua bug -
+                    # file temp ikut dieksekusi saat dihitung barisnya, dan isinya
+                    # bisa rusak sehingga path temp terbaca sebagai nama berkas.
+                    mapfile -t SISA < <(find . -type f -not -path './.git/*' | sed 's|^\./||' | sort)
+                    TOTAL_AWAL=${#SISA[@]}
 
                     # Unggah satu berkas. Mengembalikan:
                     #   0 = langsung berhasil
-                    #   2 = berhasil setelah file lama dihapus dulu
+                    #   2 = berhasil setelah file lama di server dihapus dulu
                     #   1 = gagal
                     kirim() {
                       relatif="$1"
@@ -185,25 +183,24 @@ jobs:
                       return 1
                     }
 
-                    # Beberapa pass. Berkas yang gagal dicoba ulang di pass
-                    # berikutnya dengan jeda yang makin lama, karena penyebabnya
-                    # sementara (server sedang sibuk), bukan file yang rusak.
+                    # Beberapa pass. Pass 1 mengunggah semua berkas; yang gagal
+                    GAGAL=("${SISA[@]}")
+
                     for PASS in $(seq 1 $MAKS_PASS); do
-                      [ -s "$DAFTAR" ] || break
+                      [ ${#GAGAL[@]} -gt 0 ] || break
 
                       if [ "$PASS" -gt 1 ]; then
                         echo ""
-                        echo "  -- Pass $PASS: mencoba ulang $($DAFTAR | wc -l) berkas --"
+                        echo "  -- Pass $PASS: mencoba ulang ${#GAGAL[@]} berkas --"
                       fi
 
-                    # PENTING: pakai $(cat ...), bukan BERIKUT="$DAFTAR".
-                    # Yang terakhir hanya menyalin NAMA FILE, bukan isi daftar.
-                    BERIKUT="$(cat "$DAFTAR")"
-                    : > "$DAFTAR"
+                      BERIKUT=("${GAGAL[@]}")
+                      GAGAL=()
 
-                      while IFS= read -r relatif; do
+                      for relatif in "${BERIKUT[@]}"; do
                         [ -z "$relatif" ] && continue
 
+                        # "|| hasil=$?" protects the function call from errexit.
                         hasil=0
                         kirim "$relatif" || hasil=$?
 
@@ -214,26 +211,23 @@ jobs:
                           SUKES=$((SUKES + 1))
                           echo "  [ok*]   $relatif  (file lama dihapus dulu)"
                         else
-                          BERIKUT="$BERIKUT"
-                          echo "$relatif" >> "$DAFTAR"
+                          GAGAL+=("$relatif")
                           if [ "$PASS" -eq 1 ]; then
                             echo "  [GAGAL] $relatif (akan dicoba lagi)"
                           fi
                         fi
 
                         [ "$JJEDA" != "0" ] && sleep "$JJEDA"
-                      done <<< "$BERIKUT"
+                      done
                     done
 
-                    # Berkas yang masih gagal setelah semua pass. PENTING: curl
-                    # kode 18 berarti transfer TERPUTUS SEBAGIAN, jadi berkas di
-                    # server bisa jadi rusak. Ukuran remotely dibandingkan dengan
-                    # lokal supaya ketahuan.
-                    if [ -s "$DAFTAR" ]; then
-                      GAGAL=$(wc -l < "$DAFTAR")
-                      PERLU_DICEK="$DAFTAR"
+                    # Berkas yang masih gagal. PENTING: curl kode 18 berarti transfer
+                    # TERPUTUS SEBAGIAN, jadi berkas di server bisa korup tanpa terlihat.
+                    # Ukuran remote dibandingkan dengan lokal supaya ketahuan.
+                    if [ ${#GAGAL[@]} -gt 0 ]; then
+                      RUSAK=()
 
-                      while IFS= read -r relatif; do
+                      for relatif in "${GAGAL[@]}"; do
                         [ -z "$relatif" ] && continue
                         lokal=$(stat -c%s "$PERAKARAN/$relatif" 2>/dev/null || echo 0)
                         jarak=$(curl --user "$FTP_USER:$FTP_PASS" --ssl --list-only \
@@ -244,35 +238,39 @@ jobs:
                           echo "  [CEK]   $relatif - ukuran di server sudah benar ($jarak byte)"
                         else
                           echo "  [RUSAK] $relatif - lokal $lokal byte, server ${jarak:-tidak terbaca}"
-                          PERLU_DICEK="$PERLU_DICEK$relatif"$'\n'
+                          RUSAK+=("$relatif")
                         fi
-                      done <<< "$DAFTAR"
+                      done
+
+                      {
+                        echo "### Hasil deploy"
+                        echo ""
+                        echo "- Berhasil: **$SUKES** dari $TOTAL_AWAL file"
+                        echo "- Gagal: **${#GAGAL[@]}** file setelah $MAKS_PASS percobaan"
+                      } >> "$GITHUB_STEP_SUMMARY"
+
+                      {
+                        echo ""
+                        echo "<details><summary>Berkas gagal</summary><pre>"
+                        printf '%s\n' "${RUSAK[@]}"
+                        echo "</pre></details>"
+                        echo ""
+                        echo "Unggah manual lewat File Manager TinkerHost:"
+                        echo '```'
+                        printf '  %s\n' "${RUSAK[@]}"
+                        echo '```'
+                      } >> "$GITHUB_STEP_SUMMARY"
+
+                      echo "::error::${#GAGAL[@]} file gagal setelah $MAKS_PASS percobaan."
+                      exit 1
                     fi
 
                     {
                       echo "### Hasil deploy"
                       echo ""
-                      echo "- Berhasil: **$SUKES** file"
-                      echo "- Gagal: **$GAGAL** file"
+                      echo "- Berhasil: **$SUKES** dari $TOTAL_AWAL file"
+                      echo "- Gagal: 0"
                     } >> "$GITHUB_STEP_SUMMARY"
-
-                    if [ "$GAGAL" -gt 0 ]; then
-                      {
-                        echo ""
-                        echo "<details><summary>Berkas gagal setelah $MAKS_PASSx percobaan</summary><pre>"
-                        cat "$DAFTAR"
-                        echo "</pre></details>"
-                        echo ""
-                        echo "Unggah manual berkas ini lewat File Manager TinkerHost:"
-                        echo '```'
-                        while IFS= read -r r; do [ -n "$r" ] && echo "  $r"; done <<< "$DAFTAR"
-                        echo '```'
-                      } >> "$GITHUB_STEP_SUMMARY"
-                      echo "::error::$GAGAL file gagal setelah $MAKS_PASS percobaan."
-                      exit 1
-                    fi
-
-                    rm -f "$DAFTAR"
 
                     {
                       echo ""
@@ -284,4 +282,4 @@ jobs:
                       echo "4. Login ke \`/admin\`, buka menu **Status Server**"
                     } >> "$GITHUB_STEP_SUMMARY"
 
-                    echo "Selesai: $SUKES file terkirim."
+                    echo "Selesai: $SUKES dari $TOTAL_AWAL file terkirim."

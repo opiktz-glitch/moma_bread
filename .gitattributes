@@ -1,0 +1,22 @@
+# Normalisasi line ending antar platform (Windows / Linux).
+# Dipakai agar diff tidak penuh hanya karena perbedaan CRLF vs LF.
+
+* text=auto
+
+*.php   text eol=lf
+*.css   text eol=lf
+*.js    text eol=lf
+*.md    text eol=lf
+*.sql   text eol=lf
+
+# Berkas .htaccess WAJIB LF - kalau CRLF, Apache bisa gagal memakainya.
+.htaccess text eol=lf
+
+# Gambar tidak boleh diubah baris akhir baris.
+*.jpg   binary
+*.jpeg  binary
+*.png   binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.zip   binary

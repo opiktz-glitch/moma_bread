@@ -1,0 +1,37 @@
+# =====================================================================
+ #  Moma Bread - file yang TIDAK boleh masuk ke repository git
+ # =====================================================================
+
+# --- KERAHASIAAN: jangan pernah commit ---------------------------------
+# Berisi DB_HOST, DB_USER, DB_PASS. Salin dari config/config.example.php
+# lalu sesuaikan. Kalau bocor ke repo publik, database bisa diretas.
+config/config.php
+
+# Berisi dump .sql (termasuk hash password admin) dan zip backup gambar.
+backups/
+
+# --- Installing ---------------------------------------------------------
+# Dibuat otomatis oleh install.php, status lokal tiap mesin.
+install.lock
+
+# --- Sistem operasi & editor -------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*~
+*.sublime-workspace
+*.sublime-project
+
+# --- Log & cache --------------------------------------------------------
+*.log
+error_log
+.cache/
+.phpunit.result.cache
+
+# --- Berkas sementara hasil unggahan ------------------------------------
+*.tmp
+*.part
+*.crdownload

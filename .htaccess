@@ -1,0 +1,35 @@
+# =====================================================================
+#  Moma Bread
+# =====================================================================
+
+# Halaman awal harus lewat index.php
+DirectoryIndex index.php index.html
+
+# ---------------------------------------------------------------------
+#  URL level 2:  /moma_bread/menu/signature  ->  menu.php?kategori=signature
+# Aktifkan modul rewrite pada httpd.conf bila belum aktif
+# ---------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # /menu/<slug>  ->  menu.php?kategori=<slug>
+    # Substitusi ditulis relatif (tanpa garis miring di depan) supaya
+    # aturan ini tetap bekerja di folder mana pun, bukan hanya moma_bread.
+    RewriteRule ^menu/([a-z0-9\-]+)/?$   menu.php?kategori=$1   [L,QSA]
+
+    # /menu  ->  index.php
+    RewriteRule ^menu/?$                index.php             [L,QSA]
+</IfModule>
+
+# ---------------------------------------------------------------------
+#  Cegah akses ke berkas sensitif
+# ---------------------------------------------------------------------
+<FilesMatch "\.(sql|log|md|lock|json|ini)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>

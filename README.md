@@ -48,15 +48,37 @@ akhirnya akan sama persis dengan `database/momabread.sql`.
 | Database | MySQL 5.7+ / MariaDB 10.x |
 | Web server | Apache (XAMPP) |
 
-## Cara Instalasi
+## Setup dari Git
+
+Repository ini sengaja **tidak** memuat `config/config.php` karena file itu berisi
+kredensial database. Yang tersedia adalah `config/config.example.php` sebagai template.
+
+```bash
+git clone <url-repository-ini> moma_bread
+cd moma_bread
+
+# 1. Buat file konfigurasi sendiri dari template
+copy config\config.example.php config\config.php      # Windows
+cp config/config.example.php config/config.php        # Linux/Mac
+
+# 2. Edit config/config.php, ganti bagian "1. KONEKSI DATABASE"
+#    DB_HOST untuk hosting biasanya BUKAN 127.0.0.1,
+#    melainkan sqlXXX.websitetools.com / sqlXXX.infinityfree.com
+
+# 3. Import database lewat phpMyAdmin, lalu jalankan website
+```
+
+> Kalau `config/config.php` ikut ter-commit, kredensial database Anda akan bocor
+> dan bisa dipakai orang lain untuk mengakses database Anda. `.gitignore` sudah
+> melindungi file ini secara otomatis.
+
+## Cara Instalasi (XAMPP lokal)
 
 1. Letakkan folder ini di `C:\xampp\htdocs\moma_bread`, lalu jalankan **Apache** dan **MySQL** di XAMPP.
-2. Buka `http://localhost/moma_bread/install.php`
-3. Isi **Username** dan **Password** admin, lalu klik **Pasang Sekarang**.
-4. Selesai. Installer membuat database, tabel, data awal, dan mengunci dirinya sendiri.
-
-Alternatif tanpa browser: import `database/momabread.sql` melalui phpMyAdmin,
-lalu jalankan `install.php` sekali lagi untuk membuat akun admin.
+2. Salin `config/config.example.php` menjadi `config/config.php` bila belum ada.
+3. Import `database/momabread.sql` melalui phpMyAdmin (`http://localhost/phpmyadmin`).
+4. Buka `http://localhost/moma_bread/install.php`, isi akun admin, klik **Pasang Sekarang**.
+5. **Hapus `install.php` dan `install.lock`** setelah selesai.
 
 ### Login
 
@@ -87,20 +109,26 @@ moma_bread/
 │   ├── manage.php         CRUD generik semua entitas
 │   ├── settings.php       Pengaturan situs
 │   ├── backup.php         Buat / unduh backup database
+│   ├── backup-gambar.php  Buat / unduh backup gambar (.zip)
 │   ├── password.php       Ganti password admin
 │   ├── _schema.php        Definisi entitas (label, kolom, field, relasi)
 │   └── _partials/         Layout panel admin
-├── backups/               Arsip .sql (tidak bisa diakses langsung via browser)
+├── backups/               Arsip .sql + .zip (tidak bisa diakses langsung via browser)
 ├── assets/
 │   ├── css/style.css      Tampilan halaman publik
 │   ├── css/admin.css      Tampilan panel admin
 │   ├── js/main.js         Dark mode, drawer menu, scroll spy, lightbox
 │   └── img/               Logo, banner, gambar bawaan, uploads/
-└── database/
-    ├── momabread.sql      Struktur tabel + data awal
-    ├── upgrade_1_jenis_rote.sql   Upgrade dari menu 1 tingkat
-    └── .htaccess
+└── config/
+    ├── config.php         KREDENSIAL - tidak ikut ter-commit (lihat .gitignore)
+    ├── config.example.php Template setup, aman untuk repository
+    ├── database.php       Koneksi PDO
+    └── .htaccess          Cegah akses langsung ke folder ini
 ```
+
+> Folder `database/` (berkas .sql) dan `install.php` sengaja tidak ada di
+> repository ini karena tidak dibutuhkan saat website sudah berjalan.
+> Gunakan fitur **Backup Database** di panel admin untuk membuat salinan .sql.
 
 ## Struktur Menu (2 Tingkat)
 

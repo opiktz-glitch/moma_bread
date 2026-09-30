@@ -138,9 +138,12 @@ jobs:
           FTP_USER: ${{ secrets.FTP_USER }}
           FTP_PASS: ${{ secrets.FTP_PASS }}
           FTP_PATH: ${{ secrets.FTP_PATH }}
-          # 1 = lewati gambar. Saat trigger push, "inputs" bernilai kosong
-          # sehingga 1 != false bernilai benar dan gambar tetap dilewati.
-          LEWATI_GAMBAR: ${{ inputs.lewati_gambar != false && '1' || '0' }}
+          # PENTING: pakai github.event.inputs (nilai string), bukan
+          # inputs.x != false. GitHub Actions memakai perbandingan longgar
+          # dan mengubah null serta false menjadi angka 0, sehingga
+          # null != false bernilai SALAH. Akibatnya gambar ikut terupload
+          # setiap kali workflow dipicu oleh push.
+          LEWATI_GAMBAR: ${{ github.event.inputs.lewati_gambar == 'false' && '0' || '1' }}
         run: |
                     # --user dipakai, bukan kredensial yang disisipkan ke URL, supaya
                     # password dengan karakter khusus tetap aman.

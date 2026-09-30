@@ -6,6 +6,74 @@ cuma nama host MySQL di bagian 3 yang berbeda.
 
 ---
 
+## PENTING: TinkerHost tidak bisa `git pull` di server
+
+Andalan Anda mungkin `git pull` di server seperti di hosting lain. Di
+TinkerHost itu **tidak tersedia**. Dari admin TinkerHost sendiri:
+
+> *"Unfortunately, neither symbolic links nor terminal access is provided
+> on free hosting."*
+
+Artinya tidak ada SSH/Terminal, jadi `git clone`/`git pull` di server
+mustahil. Solusinya dibalik: **git tetap jadi sumber kebenaran di komputer
+Anda, lalu di-upload dari komputer memakai FTP.** Isi yang terkirim diambil
+dengan `git archive`, jadi **persis sama dengan isi repository** — tidak ada
+selisih antara yang di-commit dan yang online.
+
+Semua itu sudah diotomatisasi oleh `tools/deploy.ps1`.
+
+---
+
+## Alur kerja (ringkas)
+
+```bash
+# 1. Ubah kode seperti biasa
+# 2. Simpan ke git
+git add .
+git commit -m "perbaiki halaman kontak"
+git push
+
+# 3. Upload ke hosting
+powershell -ExecutionPolicy Bypass -File tools\deploy.ps1
+```
+
+Uji dulu tanpa mengirim apa pun:
+
+```bash
+powershell -ExecutionPolicy Bypass -File tools\deploy.ps1 -DryRun
+```
+
+### Setup sekali saja
+
+```bash
+copy tools\deploy.config.example.json tools\deploy.config.json
+```
+
+Lalu isi `ftpHost`, `ftpUser`, `ftpPass`, dan `ftpPath` dengan data dari
+**cPanel -> FTP Accounts**. `deploy.config.json` sudah masuk `.gitignore`,
+jadi password FTP tidak ikut ter-push.
+
+| Kolom | Isi |
+|---|---|
+| `ftpHost` | Dari cPanel, mis. `ftp.tinkerhost.com` |
+| `ftpUser` | Username FTP Anda, biasanya `thsi_12345678` |
+| `ftpPass` | Password FTP (bukan password MySQL) |
+| `ftpPath` | `/public_html` atau `/public_html/moma_bread` |
+
+### Apa yang terkirim, dan apa yang tidak
+
+| Dikirim (dari git) | Tidak dikirim |
+|---|---|
+| Semua halaman PHP, CSS, JS | `config/config.php` (isi password DB) |
+| Semua `.htaccess` (4 buah) | `backups/` (arsip lokal) |
+| Semua gambar di `assets/img` | `.git/` |
+| `DEPLOY-TINKERHOST.md`, `README.md` | `tools/deploy.config.json` |
+
+> **Catatan:** skrip tidak menghapus berkas di server. Kalau Anda menghapus
+> sebuah file dari git, hapus juga manual lewat File Manager.
+
+---
+
 ## 0. Yang perlu disiapkan dulu
 
 | Kebutuhan | Keterangan |
@@ -13,6 +81,7 @@ cuma nama host MySQL di bagian 3 yang berbeda.
 | Akun TinkerHost | Gratis, tapi butuh minimal 5 pengunjung/bulan |
 | File project | Folder `moma_bread` (siap di-commit, tanpa `config.php`) |
 | `deploy-moma_bread.sql` | Berisi seluruh tabel + data awal |
+| Git | Sudah terpasang, untuk `commit` dan `push` |
 
 > **Jangan pernah commit `config/config.php` ke git.** File itu berisi
 > password database. Repo ini sudah menutupnya lewat `.gitignore`.
@@ -21,7 +90,14 @@ cuma nama host MySQL di bagian 3 yang berbeda.
 
 ## 1. Upload file project
 
-Login ke cPanel TinkerHost, lalu pakai **File Manager** atau **FTP**.
+**Cara tercepat: pakai skrip.** Lihat bagian "Alur kerja" di atas.
+
+```bash
+powershell -ExecutionPolicy Bypass -File tools\deploy.ps1
+```
+
+Kalau lebih suka upload manual lewat **File Manager** atau **FTP**, ikut
+langkah di bawah.
 
 Upload ke folder `public_html`. Kalau mau memakai subdomain sendiri
 (mis. `momabread.tinkerhost.net`), buat folder bernama `momabread` di

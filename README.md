@@ -34,9 +34,23 @@ dan dapat dikelola dari **panel admin** tanpa menyentuh kode.
 ## Deploy ke Hosting
 
 Panduan lengkap untuk hosting gratis **TinkerHost** ada di
-[`DEPLOY-TINKERHOST.md`](DEPLOY-TINKERHOST.md). Isinya mencakup cara membuat
-database, mengisi `config.php`, import SQL, memilih versi PHP, sampai
-menangani error yang sering muncul.
+[`DEPLOY-TINKERHOST.md`](DEPLOY-TINKERHOST.md).
+
+Cara rutin memperbarui website:
+
+```bash
+git add .
+git commit -m "perubahan"
+git push
+powershell -ExecutionPolicy Bypass -File tools\deploy.ps1
+```
+
+Skrip deploy mengambil file langsung dari git lewat `git archive`, jadi yang
+online selalu sama dengan yang sudah di-commit. `config/config.php` tidak
+pernah ikut terkirim.
+
+> TinkerHost tidak menyediakan terminal/SSH, jadi `git pull` di server tidak
+> bisa dipakai. Git dipakai di komputer, lalu di-upload lewat FTP.
 
 ## Upgrade dari Versi 1-Tingkat
 

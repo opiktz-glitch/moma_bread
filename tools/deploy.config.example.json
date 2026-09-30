@@ -1,0 +1,14 @@
+{
+    "_catatan": "Salin file ini menjadi deploy.config.json lalu isi datanya. JANGAN commit deploy.config.json karena berisi password FTP.",
+
+    "ftpHost": "ftp.tinkerhost.com",
+    "ftpUser": "thsi_12345678",
+    "ftpPass": "GANTI-DENGAN-PASSWORD-FTP-ANDA",
+    "ftpPath": "/public_html/moma_bread",
+
+    "_contoh": {
+        "tanpaSubfolder": "/public_html",
+        "denganSubfolder": "/public_html/moma_bread",
+        "catatanHost": "Host FTP biasanya sama dengan yang tertulis di cPanel > FTP Accounts. Kalau gagal, coba juga tanpa www."
+    }
+}

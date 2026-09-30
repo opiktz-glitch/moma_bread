@@ -244,11 +244,15 @@ jobs:
                         # "|| true" WAJIB: di bawah set -e, assignment yang berakhir
                         # non-nol akan menghentikan skrip - padahal perintah ini justru
                         # GAGAL saat server menolak, yaitu saat ringkasan dibutuhkan.
-                        # Jangan pakai "|| jawaban=..." karena itu menimpa pesan error
-                        # yang justru ingin ditampilkan.
-                        jawaban=$(curl --user "$FTP_USER:$FTP_PASS" --ssl --list-only \
-                                    "ftp://$HOST$PATH_REMOTE/$relatif" 2>&1) || true
-                        jarak=$(echo "$jawaban" | awk 'NR==1 {print $5}')
+                    # Peringatan curl WAJIB disaring sebelum di-parse. Peringatan
+                    # Peringatan "--ssl is an insecure option" muncul lebih dulu,
+                    # dan baris jawaban server bisa berupa teks error yang juga
+                    # punya lima kata atau lebih. Karena itu hanya baris BERAWAL
+                    # '-' (entri LIST) yang dipakai sebagai ukuran file.
+                    jawaban=$(curl --user "$FTP_USER:$FTP_PASS" --ssl --list-only \
+                    "ftp://$HOST$PATH_REMOTE/$relatif" 2>&1) || true
+                    bersih=$(echo "$jawaban" | grep -v -i 'insecure option' | grep -v '^Warning:')
+                    jarak=$(echo "$bersih" | grep '^-' | awk 'NF>=5 {print $5}')
 
                         if [ -n "$jarak" ] && [ "$jarak" = "$lokal" ]; then
                           echo "  [CEK]   $relatif - ukuran di server sudah benar ($jarak byte)"
@@ -257,12 +261,12 @@ jobs:
                           RUSAK+=("$relatif")
 
                           # Bedakan sebab yang butuh tindakan berbeda.
-                          if echo "$jawaban" | grep -qi 'denied'; then
+                          if echo "$bersih" | grep -qi 'denied'; then
                             PETUNJUK="${PETUNJUK}  ${relatif} -> server MENOLAK. Hapus manual lewat File Manager, lalu ulangi."$'\n'
-                          elif echo "$jawaban" | grep -qi 'not found'; then
+                          elif echo "$bersih" | grep -qi 'not found'; then
                             PETUNJUK="${PETUNJUK}  ${relatif} -> tidak ada di server dan tidak bisa dibuat. Periksa izin folder."$'\n'
                           else
-                            PETUNJUK="${PETUNJUK}  ${relatif} -> $(echo "$jawaban" | head -1)"$'\n'
+                            PETUNJUK="${PETUNJUK}  ${relatif} -> $(echo "$bersih" | head -1)"$'\n'
                           fi
                         fi
                       done

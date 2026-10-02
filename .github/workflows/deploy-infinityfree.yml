@@ -20,13 +20,12 @@ jobs:
       with:
         fetch-depth: 1
 
-    - name: Deploy ke server via FTP
+    - name: Deploy ke Server via FTP
       uses: SamKirkland/FTP-Deploy-Action@v4.3.5
       with:
         server: ${{ secrets.INFINITYFREE_FTP_HOST }}
         username: ${{ secrets.INFINITYFREE_FTP_USER }}
         password: ${{ secrets.INFINITYFREE_FTP_PASS }}
-        protocol: ftp
         server-dir: ${{ secrets.INFINITYFREE_FTP_PATH }}/
         exclude: |
           **/.git*

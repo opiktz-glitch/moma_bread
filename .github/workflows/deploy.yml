@@ -35,5 +35,4 @@ jobs:
           tools/**
           .github/**
           DEPLOY-TINKERHOST.md
-          DEPLOY-INFINITYFREE.md
           README.md

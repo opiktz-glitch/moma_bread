@@ -1,4 +1,4 @@
-name: Deploy ke TinkerHost
+name: Deploy ke InfinityFree
 
 on:
   push:
@@ -7,12 +7,12 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-tinkerhost
+  group: deploy-infinityfree
   cancel-in-progress: false
 
 jobs:
   web-deploy:
-    name: Upload ke FTP
+    name: Upload ke InfinityFree via FTP
     runs-on: ubuntu-latest
     steps:
     - name: Ambil kode
@@ -20,13 +20,14 @@ jobs:
       with:
         fetch-depth: 1
 
-    - name: Deploy ke Server via FTP
+    - name: Deploy ke server via FTP
       uses: SamKirkland/FTP-Deploy-Action@v4.3.5
       with:
-        server: ${{ secrets.FTP_HOST }}
-        username: ${{ secrets.FTP_USER }}
-        password: ${{ secrets.FTP_PASS }}
-        server-dir: ${{ secrets.FTP_PATH }}/
+        server: ${{ secrets.INFINITYFREE_FTP_HOST }}
+        username: ${{ secrets.INFINITYFREE_FTP_USER }}
+        password: ${{ secrets.INFINITYFREE_FTP_PASS }}
+        protocol: ftp
+        server-dir: ${{ secrets.INFINITYFREE_FTP_PATH }}/
         exclude: |
           **/.git*
           **/.git*/**

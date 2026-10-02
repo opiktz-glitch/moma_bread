@@ -35,6 +35,8 @@ dan dapat dikelola dari **panel admin** tanpa menyentuh kode.
 
 Panduan lengkap untuk hosting gratis **TinkerHost** ada di
 [`DEPLOY-TINKERHOST.md`](DEPLOY-TINKERHOST.md).
+Untuk hosting gratis **InfinityFree**, lihat
+[`DEPLOY-INFINITYFREE.md`](DEPLOY-INFINITYFREE.md).
 
 Cara rutin memperbarui website — cukup `git push`, sisanya otomatis:
 
@@ -44,13 +46,11 @@ git commit -m "perubahan"
 git push
 ```
 
-Proses deploy menggunakan GitHub Actions, sehingga kode yang online selalu
-sinkron dengan branch `main`. Beberapa file/folder khusus (seperti
-`config/config.php`, `tools/`, `backups/`, dan file `.md`) tidak akan ikut
-dikirim (lihat file `deploy.yml` untuk daftar pastinya). Seluruh gambar di `assets/img` juga akan otomatis ter-upload jika ada perubahan.
-
-> TinkerHost tidak menyediakan terminal/SSH, jadi `git pull` di server tidak
-> bisa dipakai. Karenanya, GitHub Actions digunakan untuk mengunggah perubahan secara otomatis lewat FTP.
+Workflow GitHub Actions tersedia untuk TinkerHost dan InfinityFree. Untuk
+InfinityFree, atur repository secrets sesuai
+[`DEPLOY-INFINITYFREE.md`](DEPLOY-INFINITYFREE.md); setelah itu push ke branch
+`main` akan mengunggah perubahan. Kredensial database di `config/config.php`
+dan isi `backups/` tidak dikirim.
 
 ## Kebutuhan Sistem
 
@@ -74,8 +74,8 @@ copy config\config.example.php config\config.php      # Windows
 cp config/config.example.php config/config.php        # Linux/Mac
 
 # 2. Edit config/config.php, ganti bagian "1. KONEKSI DATABASE"
-#    DB_HOST untuk hosting biasanya BUKAN 127.0.0.1,
-#    melainkan sqlXXX.websitetools.com / sqlXXX.infinityfree.com
+#    DB_HOST untuk hosting biasanya BUKAN 127.0.0.1. Gunakan hostname
+#    database yang ditampilkan oleh panel hosting Anda.
 
 # 3. Import database lewat phpMyAdmin, lalu jalankan website
 ```

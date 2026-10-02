@@ -17,20 +17,18 @@
 /* =====================================================================
  *  1. KONEKSI DATABASE
  *
- *  Ambil semua nilai ini dari cPanel TinkerHost:
- *    cPanel -> MySQL Databases
+ * Ambil semua nilai ini dari panel hosting Anda:
+ *    Control Panel -> MySQL Databases (nama menu bisa berbeda)
  *      - "Database Server"  -> DB_HOST
  *      - Database name      -> DB_NAME   (yang Anda buat sendiri)
  *      - MySQL username     -> DB_USER
  *      - MySQL password     -> DB_PASS
  *
- *  PENTING - host MySQL TinkerHost bentuknya:
- *      sqlxxx.thsite.top
- *  BUKAN "localhost" dan BUKAN "127.0.0.1". Mengisi localhost akan
- *  membuat situs gagal konek.
+ * PENTING - gunakan hostname MySQL yang ditampilkan oleh panel hosting.
+ * Pada hosting tertentu host bukan "localhost" atau "127.0.0.1".
  *
- *  Nama database dan user biasanya berawalan "thsi_".
- *  Buat keduanya lewat cPanel, jangan menebak.
+ * Nama database dan user mungkin memiliki prefix akun. Buat keduanya
+ * melalui panel hosting dan gunakan nama lengkap yang ditampilkan.
  * =================================================================== */
 define('DB_HOST', '127.0.0.1');
 define('DB_PORT', '3306');

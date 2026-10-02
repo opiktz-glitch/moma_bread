@@ -2,7 +2,7 @@
 /**
  * Halaman Status Server.
  *
- * Alat bantu utama saat memasang website di hosting (TinkerHost, dll).
+ * Alat bantu utama saat memasang website di hosting seperti InfinityFree.
  * Semua yang dibutuhkan aplikasi dicek dalam satu halaman, jadi tidak perlu
  * akses FTP atau shell hanya untuk memastikan server sudah cocok.
  *

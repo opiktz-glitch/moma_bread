@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-tinkerhost
+  group: deploy-infinityfree
   cancel-in-progress: false
 
 jobs:
@@ -34,5 +34,5 @@ jobs:
           backups/**
           tools/**
           .github/**
-          DEPLOY-TINKERHOST.md
+          DEPLOY-INFINITYFREE.md
           README.md

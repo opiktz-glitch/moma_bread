@@ -33,8 +33,8 @@ dan dapat dikelola dari **panel admin** tanpa menyentuh kode.
 
 ## Deploy ke Hosting
 
-Panduan lengkap untuk hosting gratis **TinkerHost** ada di
-[`DEPLOY-TINKERHOST.md`](DEPLOY-TINKERHOST.md).
+Panduan deploy ke hosting gratis **InfinityFree** ada di
+[`DEPLOY-INFINITYFREE.md`](DEPLOY-INFINITYFREE.md).
 
 Cara rutin memperbarui website — cukup `git push`, sisanya otomatis:
 
@@ -44,7 +44,7 @@ git commit -m "perubahan"
 git push
 ```
 
-Workflow GitHub Actions mengunggah perubahan ke TinkerHost. Kredensial
+Workflow GitHub Actions mengunggah perubahan ke InfinityFree. Kredensial
 database di `config/config.php` dan isi `backups/` tidak dikirim.
 
 ## Kebutuhan Sistem

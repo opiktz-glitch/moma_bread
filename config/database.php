@@ -103,8 +103,8 @@ function db_connection_error_page(PDOException $e): void
     <li>Buka <strong>cPanel &rarr; MySQL Databases</strong>, lalu pastikan database sudah dibuat.</li>
     <li>Salin <strong>Database Server</strong>, <strong>username</strong>, dan <strong>password</strong> dari
         cPanel ke <code>config/config.php</code>.</li>
-    <li>Di TinkerHost, host MySQL umumnya berbentuk
-        <code>sqlxxx.thsite.top</code> &mdash; <strong>bukan</strong> <code>localhost</code>.</li>
+    <li>Salin hostname MySQL persis dari panel hosting Anda; pada InfinityFree, hostname ini bukan
+        <code>localhost</code>.</li>
     <li>Pastikan tabel sudah ada dengan melakukan import file backup <code>.sql</code> lewat phpMyAdmin.</li>
   </ol>
 

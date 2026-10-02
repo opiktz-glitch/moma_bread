@@ -1,4 +1,4 @@
-name: Deploy ke TinkerHost
+name: Deploy ke InfinityFree
 
 on:
   push:

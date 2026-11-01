@@ -33,10 +33,12 @@ dan dapat dikelola dari **panel admin** tanpa menyentuh kode.
 
 ## Deploy ke Hosting
 
-Panduan deploy ke hosting gratis **InfinityFree** ada di
-[`DEPLOY-INFINITYFREE.md`](DEPLOY-INFINITYFREE.md).
+Panduan deploy tersedia untuk dua lingkungan:
 
-Cara rutin memperbarui website — cukup `git push`, sisanya otomatis:
+- Server Ubuntu internal **tzserver**: [`DEPLOY-TZSERVER.md`](DEPLOY-TZSERVER.md)
+- Hosting gratis **InfinityFree**: [`DEPLOY-INFINITYFREE.md`](DEPLOY-INFINITYFREE.md)
+
+Untuk InfinityFree, update rutin dilakukan otomatis setelah `git push`:
 
 ```bash
 git add .

@@ -33,8 +33,9 @@ dan dapat dikelola dari **panel admin** tanpa menyentuh kode.
 
 ## Deploy ke Hosting
 
-Panduan deploy tersedia untuk dua lingkungan:
+Panduan deploy tersedia untuk beberapa lingkungan:
 
+- Docker (Windows, Linux, atau Mac): [`DEPLOY-DOCKER.md`](DEPLOY-DOCKER.md)
 - Server Ubuntu internal **tzserver**: [`DEPLOY-TZSERVER.md`](DEPLOY-TZSERVER.md)
 - Hosting gratis **InfinityFree**: [`DEPLOY-INFINITYFREE.md`](DEPLOY-INFINITYFREE.md)
 

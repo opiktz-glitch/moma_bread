@@ -1,0 +1,11 @@
+.git
+.github
+.vscode
+.idea
+.env
+.env.*
+config/config.php
+backups/
+install.lock
+*.log
+error_log

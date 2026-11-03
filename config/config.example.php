@@ -30,11 +30,13 @@
  * Nama database dan user mungkin memiliki prefix akun. Buat keduanya
  * melalui panel hosting dan gunakan nama lengkap yang ditampilkan.
  * =================================================================== */
-define('DB_HOST', '127.0.0.1');
-define('DB_PORT', '3306');
-define('DB_NAME', 'moma_bread');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+// Environment variables override these defaults in Docker deployments.
+define('DB_HOST', getenv('DB_HOST') ?: '127.0.0.1');
+define('DB_PORT', getenv('DB_PORT') ?: '3306');
+define('DB_NAME', getenv('DB_NAME') ?: 'moma_bread');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+$dbPass = getenv('DB_PASSWORD');
+define('DB_PASS', $dbPass === false ? '' : $dbPass);
 define('DB_CHARSET', 'utf8mb4');
 
 /* =====================================================================

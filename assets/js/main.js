@@ -165,7 +165,11 @@
             var box = document.createElement('div');
             box.className = 'lightbox';
             box.dataset.lightbox = '1';
-            box.innerHTML = '<img src="' + image.src + '" alt="' + image.alt + '">';
+
+            var imgEl = document.createElement('img');
+            imgEl.src = image.src;
+            imgEl.alt = image.alt;
+            box.appendChild(imgEl);
 
             box.addEventListener('click', function () {
                 box.remove();

@@ -49,6 +49,12 @@ function db_dump(): string
     foreach ($tables as $table) {
         $rows = $pdo->query("SELECT * FROM `$table`")->fetchAll(PDO::FETCH_ASSOC);
         $out .= "-- Data tabel `$table`\n";
+
+        if (!$rows) {
+            $out .= "-- (kosong)\n\n";
+            continue;
+        }
+
         $out .= "INSERT INTO `$table` VALUES\n";
 
         $values = [];
@@ -63,7 +69,7 @@ function db_dump(): string
             $values[] = '(' . implode(', ', $cells) . ')';
         }
 
-        $out .= ($values ? implode(",\n", $values) : '') . ";\n\n";
+        $out .= implode(",\n", $values) . ";\n\n";
     }
 
     $out .= "SET FOREIGN_KEY_CHECKS = 1;\n";

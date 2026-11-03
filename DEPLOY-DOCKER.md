@@ -1,164 +1,116 @@
-# Deploy Moma Bread dengan Docker
+# Deploy Moma Bread dengan Docker di Windows 11
 
-Panduan ini menjalankan Apache, PHP 8.3, dan MariaDB 10.11 menggunakan Docker
-Compose. Database, gambar upload, dan arsip backup disimpan di Docker volumes
-agar tetap ada saat container dibuat ulang.
+Konfigurasi ini membuat container web dan container MariaDB khusus Moma Bread.
+Database memakai Docker volume persisten terpisah dari kode aplikasi dan dari
+database milik stack `pamit`. Upload gambar dan backup aplikasi juga disimpan
+di volume tersendiri. MariaDB tidak membuka port ke jaringan host; web
+terhubung ke database melalui network internal Compose.
 
 ## Prasyarat
 
-- Docker Desktop di Windows/Mac, atau Docker Engine dan Docker Compose v2 di Linux.
-- File backup database `.sql` dari instalasi Moma Bread yang sudah berjalan.
+- Docker Desktop berjalan di server Windows 11.
+- Git for Windows sudah terpasang.
+- File backup database `.sql` jika ingin memindahkan data dari tzserver.
 
-> Repository ini tidak menyertakan `install.php` maupun dump database. Untuk
-> deploy data yang sudah ada, siapkan dump SQL melalui fitur **Backup Database**
-> di panel admin atau dari server database lama.
+Repository tidak menyertakan `install.php` atau dump database. Untuk
+memindahkan situs yang sudah ada, unduh dump melalui fitur **Backup Database**
+di panel admin sebelum memulai.
 
-## Jalankan di Windows (PowerShell) atau Linux
+## Deploy pertama
 
-1. Clone repository, lalu masuk ke foldernya:
+1. **Push konfigurasi Docker ke GitHub.** Dari komputer pengembangan, commit
+   dan push perubahan yang ingin dipakai server ke branch `main`. Jangan
+   sertakan `config/config.php`, `.env`, atau file backup.
+
+2. **Clone repository di server.** Buka PowerShell:
 
    ```powershell
+   New-Item -ItemType Directory -Force C:\apps
+   Set-Location C:\apps
    git clone https://github.com/opiktz-glitch/moma_bread.git
-   cd moma_bread
+   Set-Location C:\apps\moma_bread
    ```
 
-2. Buat file environment lokal. File `.env` tidak masuk Git.
+3. **Siapkan rahasia environment.** Salin template lalu edit:
 
    ```powershell
    Copy-Item .env.example .env
+   notepad .env
    ```
 
-   Di Linux gunakan `cp .env.example .env`. Untuk menjalankan database bawaan
-   Compose, edit `.env` dan ganti `DB_PASSWORD` serta `DB_ROOT_PASSWORD`
-   dengan password kuat dan berbeda.
+   Ganti `DB_PASSWORD` dan `DB_ROOT_PASSWORD` dengan password kuat dan berbeda.
+   Atur `APP_PORT=8081`; port `8080` sudah digunakan `pamit-app`. File `.env`
+   hanya disimpan di server dan tidak boleh di-commit.
 
-   `APP_PORT` adalah port HTTP di komputer/server (default `8081`). Jika port
-   tersebut sudah dipakai, ubah nilainya, misalnya ke `8081`.
+   Kredensial `DB_NAME`, `DB_USER`, dan password akan dipakai untuk inisialisasi
+   database khusus pertama kali. Setelah database dibuat, mengubah nilai
+   environment database saja tidak mengubah akun/kata sandi yang sudah ada
+   dalam volume MariaDB.
 
-3. Bangun dan jalankan aplikasi:
+4. **Build dan jalankan kedua container:**
 
    ```powershell
    docker compose up -d --build
    docker compose ps
    ```
 
-   Tunggu sampai service `db` berstatus `healthy`, lalu buka
-   `http://localhost:8080` (atau port yang Anda pilih). Apache memakai
-   `mod_rewrite` dan `.htaccess` aplikasi.
+   Tunggu sampai service `db` berstatus `healthy`. Container MariaDB ini
+   terpisah dari `pamit-db`; Moma Bread tidak bergantung pada network atau
+   database stack `pamit`. Buka `http://localhost:8081` di server. Dari komputer
+   lain di kantor, gunakan `http://IP-SERVER:8081`. Jika tidak dapat diakses,
+   izinkan port `8081` pada Windows Firewall.
 
-4. Restore database. Pastikan dump berasal dari aplikasi Moma Bread dan sesuai
-   dengan versi skema aplikasi. Di PowerShell, ganti nama file pada contoh
-   berikut jika diperlukan. Jalankan dari PowerShell:
+5. **Pindahkan data lama jika diperlukan.** Jika ingin memakai database dari
+   tzserver, unduh dump `.sql` dari fitur **Backup Database** di panel admin.
+   Dari PowerShell pada folder repository, sesuaikan lokasi file:
 
    ```powershell
    $dbContainer = docker compose ps -q db
-   docker cp .\moma_bread.sql "${dbContainer}:/tmp/moma_bread.sql"
+   docker cp C:\path\ke\moma_bread.sql "${dbContainer}:/tmp/moma_bread.sql"
    docker compose exec db sh -c 'mariadb -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" "$MARIADB_DATABASE" < /tmp/moma_bread.sql'
    docker compose exec db rm /tmp/moma_bread.sql
    ```
 
-   Di Linux, file SQL dapat dialirkan langsung:
+   Import dapat mengganti data yang sudah ada dalam database Moma Bread.
+   Lewati langkah ini untuk instalasi database baru. Setelah import, buka
+   `/admin/login.php` dan gunakan akun admin dari dump.
 
-   ```bash
-   docker compose exec -T db sh -c 'mariadb -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" "$MARIADB_DATABASE"' < ./moma_bread.sql
-   ```
+6. **Pindahkan gambar upload bila dibutuhkan.** Dump database tidak menyertakan
+   file gambar. Salin gambar lama ke volume upload Moma Bread secara terpisah.
+   Panduan ini menggunakan Docker volume; folder upload dapat dipindah ke bind
+   mount Windows kemudian, dengan menyalin data terlebih dahulu.
 
-   Setelah import, muat ulang situs dan buka `/admin/login.php`. Gunakan akun
-   admin yang sudah ada dalam dump database.
+## Update setelah push
 
-## Gunakan database Docker yang sudah ada
-
-Database dalam Docker dapat dipakai bersama oleh beberapa aplikasi. Gunakan
-database/schema dan user terpisah untuk Moma Bread; jangan memakai database
-atau user aplikasi lain. Buat database `moma_bread` dan user khusus di server
-MySQL/MariaDB yang sudah berjalan, lalu berikan user tersebut akses hanya ke
-database Moma Bread.
-
-Container aplikasi dan database harus bergabung ke satu Docker network. Pada
-Docker Anda, container database bernama `pamit-db` dan network-nya
-`pamit_pamit_network`. Port `3307:3306` berarti port internal database tetap
-`3306`; port `3307` hanya dipakai koneksi dari luar Docker. Moma Bread akan
-bergabung ke network yang sama dan memakai `pamit-db:3306`. Jangan membuat
-network baru atau menjalankan `docker network connect`.
-
-Atur `.env` untuk database yang sudah ada:
-
-```dotenv
-APP_PORT=8081
-DB_HOST=pamit-db
-DB_PORT=3306
-DB_NAME=moma_bread
-DB_USER=moma_app
-DB_PASSWORD=password-user-moma-bread
-DB_NETWORK=pamit_pamit_network
-```
-
-Ganti `DB_PASSWORD` dengan password user database Moma Bread yang sebenarnya.
-`DB_HOST` harus berupa nama container atau network alias yang dapat di-resolve
-di network tersebut. Jangan gunakan `localhost`: dari container aplikasi,
-`localhost` menunjuk ke container aplikasi itu sendiri.
-Port `8080` sudah dipakai container `pamit-app`, jadi panduan ini memakai
-`8081` untuk Moma Bread. Setelah berjalan, buka `http://localhost:8081`.
-
-Jalankan hanya service aplikasi dengan file Compose khusus ini (jangan memakai
-`compose.yaml`, karena file tersebut juga menjalankan database baru):
+Setelah perubahan aplikasi di-push ke branch `main`, jalankan di PowerShell
+server:
 
 ```powershell
-docker compose -f compose.shared-db.yaml up -d --build
-docker compose -f compose.shared-db.yaml ps
+Set-Location C:\apps\moma_bread
+.\update.bat
 ```
 
-Import dump ke database `moma_bread` pada server yang sudah ada, bukan ke
-database container baru. Contoh PowerShell:
+Script memeriksa Docker Desktop, file `.env`, branch `main`, dan perubahan
+tracked lokal; lalu mengambil perubahan terbaru dengan `git pull --ff-only`,
+memvalidasi Compose, serta menjalankan `docker compose up -d --build`.
+Perintah memperbarui service web dan mempertahankan database, upload, serta
+backup di volumes. Update tidak berjalan otomatis saat push dari komputer lain;
+`update.bat` dijalankan manual di server.
 
-```powershell
-$webContainer = docker compose -f compose.shared-db.yaml ps -q web
-docker cp .\moma_bread.sql "${webContainer}:/tmp/moma_bread.sql"
-docker compose -f compose.shared-db.yaml exec web sh -c 'mariadb -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < /tmp/moma_bread.sql'
-docker compose -f compose.shared-db.yaml exec web rm /tmp/moma_bread.sql
-```
+Jika checkout memiliki perubahan lokal, script berhenti agar tidak menimpa
+perubahan tersebut. Simpan atau commit perubahan terlebih dahulu, lalu jalankan
+kembali.
 
-Image aplikasi menyertakan client MariaDB untuk perintah restore ini. Jika
-database sudah berisi data Moma Bread, lewati langkah import.
+## Operasi dan keamanan data
 
-## Update dan operasi
-
-- Setelah perubahan di-push ke branch `main`, jalankan `update.bat` di folder
-  checkout repository pada Windows server yang menjalankan Docker Desktop.
-  Jalankan dari PowerShell:
-
-  ```powershell
-  .\update.bat
-  ```
-
-  Script memeriksa Docker Desktop dan `.env`, memastikan checkout berada di
-  branch `main` tanpa perubahan tracked lokal, mengambil commit terbaru dengan
-  `git pull --ff-only`, lalu membangun dan menjalankan ulang hanya service web
-  melalui `compose.shared-db.yaml`. Database `pamit-db` dan volume tidak
-  dihentikan atau dihapus. Jika perintah gagal, script menampilkan error dan
-  berhenti.
-
-- Update tidak berjalan otomatis saat `git push` dilakukan dari komputer lain.
-  Jalankan `update.bat` setelah push; otomatisasi dapat dibuat kemudian dengan
-  Windows Task Scheduler untuk menjalankannya berkala.
+- Status container: `docker compose ps`
 - Log aplikasi: `docker compose logs -f web`
-- Log database (hanya untuk database bawaan): `docker compose logs -f db`
+- Log database: `docker compose logs -f db`
 - Hentikan container tanpa menghapus data: `docker compose down`
-- Jangan menjalankan `docker compose down -v` kecuali memang ingin menghapus
-  database, upload, dan backup secara permanen.
+- Jangan gunakan `docker compose down -v`: opsi `-v` menghapus volume database,
+  upload, dan backup.
 
-Jika memakai database bersama, gunakan `docker compose -f compose.shared-db.yaml`
-untuk perintah Compose. Menghentikan aplikasi Moma Bread tidak akan menghentikan
-container database yang dipakai aplikasi lain.
-
-Untuk backup, gunakan fitur backup database di panel admin dan simpan hasilnya
-di luar mesin Docker. Docker volumes melindungi data dari pembuatan ulang
-container, tetapi bukan pengganti backup terpisah.
-
-## Deploy ke server
-
-Di server Linux, clone repository, buat `.env` dengan password yang kuat,
-kemudian jalankan langkah build yang sama. Buka hanya port yang diperlukan di
-firewall. Untuk domain publik, letakkan reverse proxy dengan HTTPS di depan
-aplikasi dan jangan mengekspos port database `3306` ke internet. Pertahankan
-Docker volumes dan buat backup database berkala.
+Nama project Compose dikunci sebagai `moma-bread`. Volume database bernama
+`moma-bread_database`, sehingga tidak bergantung pada MariaDB atau volume stack
+`pamit`. Menghapus container web saja tidak menghapus database. Tetap buat
+backup database berkala dan simpan di luar server Docker; volume bukan backup.

@@ -38,16 +38,16 @@ git pull --ff-only origin main
 if errorlevel 1 goto update_failed
 
 echo Validating Docker Compose configuration...
-docker compose -f compose.shared-db.yaml config --quiet
+docker compose config --quiet
 if errorlevel 1 goto update_failed
 
 echo Building and starting Moma Bread...
-docker compose -f compose.shared-db.yaml up -d --build
+docker compose up -d --build
 if errorlevel 1 goto update_failed
 
 echo.
 echo Moma Bread update completed. Container status:
-docker compose -f compose.shared-db.yaml ps
+docker compose ps
 popd
 exit /b 0
 

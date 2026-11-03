@@ -7,6 +7,9 @@
 # lalu sesuaikan. Kalau bocor ke repo publik, database bisa diretas.
 config/config.php
 
+# Environment variables used by local/Docker deployments.
+.env
+
 # Berisi dump .sql (termasuk hash password admin) dan zip backup gambar.
 backups/
 

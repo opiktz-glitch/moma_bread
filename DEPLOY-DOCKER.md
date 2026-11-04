@@ -82,24 +82,37 @@ di panel admin sebelum memulai.
 
 ## Update setelah push
 
-Setelah perubahan aplikasi di-push ke branch `main`, jalankan di PowerShell
-server:
+Workflow GitHub Actions akan otomatis berjalan setiap kali ada push ke branch
+`main`. Workflow memakai self-hosted runner Windows yang sudah terpasang di
+server, lalu memanggil `C:\TZ_FIles\Moma_bread\update.bat`. Runner harus
+memiliki label standar `self-hosted`, `windows`, dan `x64`, serta berjalan
+dengan akun Windows yang dapat mengakses folder aplikasi dan Docker Desktop.
+
+Pastikan runner terlihat **Online** di **GitHub → Settings → Actions → Runners**.
+Setelah workflow di-push, uji dengan push perubahan ke `main`, lalu pantau
+hasilnya di tab **Actions**. Jika job gagal karena label, sesuaikan
+`runs-on` pada `.github/workflows/deploy-docker.yml` dengan label runner Anda.
+
+Untuk menjalankan update manual di PowerShell server:
 
 ```powershell
-Set-Location C:\apps\moma_bread
+Set-Location C:\TZ_FIles\Moma_bread
 .\update.bat
 ```
 
 Script memeriksa Docker Desktop, file `.env`, branch `main`, dan perubahan
 tracked lokal; lalu mengambil perubahan terbaru dengan `git pull --ff-only`,
-memvalidasi Compose, serta menjalankan `docker compose up -d --build`.
-Perintah memperbarui service web dan mempertahankan database, upload, serta
-backup di volumes. Update tidak berjalan otomatis saat push dari komputer lain;
-`update.bat` dijalankan manual di server.
+memvalidasi Compose, serta menjalankan `docker compose up -d --build`. Perintah
+memperbarui service web dan mempertahankan database, upload, serta backup di
+volumes.
 
 Jika checkout memiliki perubahan lokal, script berhenti agar tidak menimpa
 perubahan tersebut. Simpan atau commit perubahan terlebih dahulu, lalu jalankan
 kembali.
+
+Self-hosted runner memberi workflow hak untuk menjalankan perintah pada server.
+Batasi akses push ke `main` hanya untuk maintainer tepercaya, dan jangan aktifkan
+workflow deployment ini untuk pull request dari kontributor yang tidak dipercaya.
 
 ## Operasi dan keamanan data
 

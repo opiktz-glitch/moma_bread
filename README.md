@@ -37,18 +37,6 @@ Panduan deploy tersedia untuk beberapa lingkungan:
 
 - Docker (Windows, Linux, atau Mac): [`DEPLOY-DOCKER.md`](DEPLOY-DOCKER.md)
 - Server Ubuntu internal **tzserver**: [`DEPLOY-TZSERVER.md`](DEPLOY-TZSERVER.md)
-- Hosting gratis **InfinityFree**: [`DEPLOY-INFINITYFREE.md`](DEPLOY-INFINITYFREE.md)
-
-Untuk InfinityFree, update rutin dilakukan otomatis setelah `git push`:
-
-```bash
-git add .
-git commit -m "perubahan"
-git push
-```
-
-Workflow GitHub Actions mengunggah perubahan ke InfinityFree. Kredensial
-database di `config/config.php` dan isi `backups/` tidak dikirim.
 
 ## Kebutuhan Sistem
 

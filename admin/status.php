@@ -2,7 +2,7 @@
 /**
  * Halaman Status Server.
  *
- * Alat bantu utama saat memasang website di hosting seperti InfinityFree.
+ * Alat bantu utama saat memasang website di lingkungan hosting.
  * Semua yang dibutuhkan aplikasi dicek dalam satu halaman, jadi tidak perlu
  * akses FTP atau shell hanya untuk memastikan server sudah cocok.
  *
@@ -12,7 +12,7 @@
  *  - Folder yang harus bisa ditulisi (uploads & backups)
  *  - Status .htaccess dan URL bersih
  *  - Batas upload PHP dibandingkan batas aplikasi
- *  - Jumlah file, relevan terhadap kuota inode hosting gratis
+ *  - Jumlah file, relevan terhadap batas inode pada sebagian hosting
  *
  * Halaman ini butuh login, jadi dipakai setelah koneksi database berhasil.
  * Bila koneksi database sendiri yang gagal, pengunjung akan melihat halaman

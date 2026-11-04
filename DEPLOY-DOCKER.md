@@ -1,10 +1,11 @@
 # Deploy Moma Bread dengan Docker di Windows 11
 
 Konfigurasi ini membuat container web dan container MariaDB khusus Moma Bread.
-Database dan backup aplikasi memakai Docker volume persisten, terpisah dari
-database milik stack `pamit`. Gambar upload disimpan langsung di
-`C:\TZ_FIles\Moma_bread\Uploads` melalui bind mount. MariaDB tidak membuka port
-ke jaringan host; web terhubung ke database melalui network internal Compose.
+Database memakai Docker volume persisten terpisah dari database milik stack
+`pamit`. Gambar upload disimpan di folder Windows yang diatur oleh
+`UPLOADS_PATH` (default `C:\TZ_FIles\Moma_bread\Uploads`). Backup disimpan di
+`C:\TZ_FIles\Moma_bread\backups`. MariaDB tidak membuka port ke jaringan host;
+web terhubung ke database melalui network internal Compose.
 
 ## Prasyarat
 
@@ -39,8 +40,11 @@ di panel admin sebelum memulai.
    ```
 
    Ganti `DB_PASSWORD` dan `DB_ROOT_PASSWORD` dengan password kuat dan berbeda.
-   Atur `APP_PORT=8081`; port `8080` sudah digunakan `pamit-app`. File `.env`
-   hanya disimpan di server dan tidak boleh di-commit.
+   Atur `APP_PORT=8081`; port `8080` sudah digunakan `pamit-app`. `UPLOADS_PATH`
+   default ke folder `Uploads` di repository. Untuk memindahkannya ke tempat
+   lain, isi dengan path Windows absolut, gunakan garis miring `/`, contoh:
+   `UPLOADS_PATH=D:/MomaBread/Uploads`. File `.env` hanya disimpan di server
+   dan tidak boleh di-commit.
 
    Kredensial `DB_NAME`, `DB_USER`, dan password akan dipakai untuk inisialisasi
    database khusus pertama kali. Setelah database dibuat, mengubah nilai
@@ -75,10 +79,9 @@ di panel admin sebelum memulai.
    Lewati langkah ini untuk instalasi database baru. Setelah import, buka
    `/admin/login.php` dan gunakan akun admin dari dump.
 
-6. **Periksa gambar upload di Windows.** Gambar upload berada di
-   `C:\TZ_FIles\Moma_bread\Uploads`; `.gitignore` mencegah file gambar masuk
-   repository. Gambar bawaan seperti banner dan logo tetap berada di folder
-   aplikasi.
+6. **Periksa gambar upload di Windows.** `.gitignore` mencegah folder upload
+   masuk repository. Gambar bawaan seperti banner dan logo tetap berada di
+   folder aplikasi.
 
 ## Update setelah push
 
@@ -106,13 +109,12 @@ memvalidasi Compose, serta menjalankan `docker compose up -d --build`. Perintah
 memperbarui service web dan mempertahankan database serta backup di Docker
 volumes, juga gambar upload di folder Windows.
 
-Saat pindah dari Docker volume upload ke bind mount, script update satu kali
-menyalin isi `/var/www/html/assets/img/uploads` dari container web yang sedang
-berjalan ke folder `Uploads` sebelum membuat ulang container. Pastikan folder
-`C:\TZ_FIles\Moma_bread\Uploads` belum dibuat kosong secara manual. Jika migrasi
-gagal, script berhenti tanpa memperbarui atau menghapus container lama. Setelah
-berhasil, upload baru dan perubahan gambar akan langsung tersimpan di folder
-Windows tersebut.
+Saat pindah dari Docker volume upload dan backup ke bind mount, script update
+satu kali menyalin data dari container web yang sedang berjalan ke folder
+Windows sebelum membuat ulang container. Jangan buat folder `Uploads` kosong
+secara manual sebelum update migrasi pertama. Jika migrasi gagal, script
+berhenti tanpa menghapus container atau volume lama. Setelah berhasil, upload
+baru dan backup aplikasi langsung tersimpan di Windows.
 
 Jika checkout memiliki perubahan lokal, script berhenti agar tidak menimpa
 perubahan tersebut. Simpan atau commit perubahan terlebih dahulu, lalu jalankan
@@ -129,10 +131,73 @@ workflow deployment ini untuk pull request dari kontributor yang tidak dipercaya
 - Log database: `docker compose logs -f db`
 - Hentikan container tanpa menghapus data: `docker compose down`
 - Jangan gunakan `docker compose down -v`: opsi `-v` menghapus volume database
-  dan backup. Folder upload `Uploads` berada di Windows dan tidak dihapus oleh
+  database. Folder upload dan backup berada di Windows dan tidak dihapus oleh
   perintah tersebut.
 
 Nama project Compose dikunci sebagai `moma-bread`. Volume database bernama
 `moma-bread_database`, sehingga tidak bergantung pada MariaDB atau volume stack
 `pamit`. Menghapus container web saja tidak menghapus database. Tetap buat
 backup database berkala dan simpan di luar server Docker; volume bukan backup.
+
+## Backup harian dan pemulihan
+
+Backup otomatis membuat pasangan file database dan upload gambar di:
+
+```text
+C:\TZ_FIles\Moma_bread\backups
+```
+
+File menggunakan nama bertimestamp `moma-bread-<tanggal-waktu>.sql` dan
+`moma-bread-<tanggal-waktu>-images.zip`. Backup berumur lebih dari 30 hari
+dihapus saat backup berikutnya berhasil dibuat. Log ada di `backups\backup.log`.
+
+- **Tes atau backup manual kapan saja:** jalankan `backup.bat` dari folder
+  repository. Tunggu pesan `Backup completed` dan pastikan sepasang file baru
+  muncul di folder `backups`.
+- **Jadwalkan setiap hari pukul 23.00:** jalankan `install-backup-task.bat`
+  satu kali. Verifikasi dengan
+  `schtasks /Query /TN "Moma Bread Nightly Backup" /FO LIST`.
+- Task berjalan sebagai user Windows yang sedang masuk (`/IT`). Docker Desktop
+  harus berjalan dan user tersebut harus tetap login saat jadwal backup. Untuk
+  melihat hasil, periksa `backups\backup.log` dan pasangan file bertanggal.
+- Backup gambar mencakup isi folder upload aktif yang ditetapkan oleh
+  `UPLOADS_PATH`; gambar bawaan aplikasi tetap dikelola melalui Git.
+
+**Pemulihan database dan upload** dari satu pasangan backup:
+
+```powershell
+.\restore.bat -SqlFile "C:\TZ_FIles\Moma_bread\backups\moma-bread-<tanggal-waktu>.sql"
+```
+
+ZIP gambar yang memiliki timestamp sama akan dipilih otomatis. Script membuat
+backup keselamatan terlebih dahulu, meminta Anda mengetik `RESTORE`, kemudian
+menghentikan web sementara saat pemulihan. Database yang dipulihkan menggantikan
+tabel/data saat ini; gambar upload yang dipulihkan mengganti seluruh isi folder
+upload aktif. Backup keselamatan tetap tersedia di folder `backups`. Untuk
+memulihkan gambar saja:
+
+```powershell
+.\restore.bat -ImageFile "C:\TZ_FIles\Moma_bread\backups\moma-bread-<tanggal-waktu>-images.zip"
+```
+
+Folder upload dapat dipindah kapan saja. Contoh memindahkan dari folder proyek
+ke `D:\MomaBread\Uploads`:
+
+```powershell
+docker compose stop web
+New-Item -ItemType Directory -Force D:\MomaBread\Uploads
+Copy-Item .\Uploads\* D:\MomaBread\Uploads -Recurse -Force
+notepad .env
+```
+
+Ubah baris `UPLOADS_PATH` menjadi `UPLOADS_PATH=D:/MomaBread/Uploads`, simpan,
+lalu jalankan:
+
+```powershell
+docker compose up -d
+docker compose ps
+```
+
+Periksa situs dan gambar sebelum menghapus folder upload lama. Backup ZIP dapat
+dipulihkan ke lokasi upload aktif apa pun karena restore mengambil target dari
+konfigurasi Compose saat ini.

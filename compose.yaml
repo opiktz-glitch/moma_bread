@@ -34,10 +34,11 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     volumes:
       - type: bind
-        source: ./Uploads
+        source: ${UPLOADS_PATH:-./Uploads}
         target: /var/www/html/assets/img/uploads
-      - backups:/var/www/html/backups
+      - type: bind
+        source: ./backups
+        target: /var/www/html/backups
 
 volumes:
   database:
-  backups:

@@ -41,6 +41,28 @@ echo Validating Docker Compose configuration...
 docker compose config --quiet
 if errorlevel 1 goto update_failed
 
+if not exist "%APP_DIR%.uploads-migrated" goto migrate_uploads
+if not exist "%APP_DIR%Uploads\" goto migration_failed
+
+goto uploads_ready
+
+:migrate_uploads
+echo Migrating uploaded images from the existing web container...
+set "WEB_CONTAINER="
+for /f "delims=" %%C in ('docker compose ps -q web 2^>nul') do set "WEB_CONTAINER=%%C"
+if not defined WEB_CONTAINER goto migration_failed
+
+if exist "%APP_DIR%Uploads\" goto uploads_directory_ready
+mkdir "%APP_DIR%Uploads"
+if errorlevel 1 goto migration_failed
+
+:uploads_directory_ready
+docker cp "%WEB_CONTAINER%:/var/www/html/assets/img/uploads/." "%APP_DIR%Uploads"
+if errorlevel 1 goto migration_failed
+type nul > "%APP_DIR%.uploads-migrated"
+if errorlevel 1 goto migration_failed
+
+:uploads_ready
 echo Building and starting Moma Bread...
 docker compose up -d --build
 if errorlevel 1 goto update_failed
@@ -58,5 +80,11 @@ exit /b 1
 
 :update_failed
 echo ERROR: Update failed. Review the message above; the database volume was not removed.
+popd
+exit /b 1
+
+:migration_failed
+echo ERROR: Could not copy uploads from the existing web container.
+echo The old container and its Docker data have not been removed.
 popd
 exit /b 1

@@ -33,10 +33,11 @@ services:
       DB_USER: ${DB_USER:-moma_app}
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     volumes:
-      - uploads:/var/www/html/assets/img/uploads
+      - type: bind
+        source: ./Uploads
+        target: /var/www/html/assets/img/uploads
       - backups:/var/www/html/backups
 
 volumes:
   database:
-  uploads:
   backups:

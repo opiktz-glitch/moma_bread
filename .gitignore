@@ -10,6 +10,10 @@ config/config.php
 # Environment variables used by local/Docker deployments.
 .env
 
+# User-uploaded images are persisted on the Windows host, not in Git.
+/Uploads/
+.uploads-migrated
+
 # Berisi dump .sql (termasuk hash password admin) dan zip backup gambar.
 backups/
 

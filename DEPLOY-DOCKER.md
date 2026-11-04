@@ -1,10 +1,10 @@
 # Deploy Moma Bread dengan Docker di Windows 11
 
 Konfigurasi ini membuat container web dan container MariaDB khusus Moma Bread.
-Database memakai Docker volume persisten terpisah dari kode aplikasi dan dari
-database milik stack `pamit`. Upload gambar dan backup aplikasi juga disimpan
-di volume tersendiri. MariaDB tidak membuka port ke jaringan host; web
-terhubung ke database melalui network internal Compose.
+Database dan backup aplikasi memakai Docker volume persisten, terpisah dari
+database milik stack `pamit`. Gambar upload disimpan langsung di
+`C:\TZ_FIles\Moma_bread\Uploads` melalui bind mount. MariaDB tidak membuka port
+ke jaringan host; web terhubung ke database melalui network internal Compose.
 
 ## Prasyarat
 
@@ -75,10 +75,10 @@ di panel admin sebelum memulai.
    Lewati langkah ini untuk instalasi database baru. Setelah import, buka
    `/admin/login.php` dan gunakan akun admin dari dump.
 
-6. **Pindahkan gambar upload bila dibutuhkan.** Dump database tidak menyertakan
-   file gambar. Salin gambar lama ke volume upload Moma Bread secara terpisah.
-   Panduan ini menggunakan Docker volume; folder upload dapat dipindah ke bind
-   mount Windows kemudian, dengan menyalin data terlebih dahulu.
+6. **Periksa gambar upload di Windows.** Gambar upload berada di
+   `C:\TZ_FIles\Moma_bread\Uploads`; `.gitignore` mencegah file gambar masuk
+   repository. Gambar bawaan seperti banner dan logo tetap berada di folder
+   aplikasi.
 
 ## Update setelah push
 
@@ -103,8 +103,16 @@ Set-Location C:\TZ_FIles\Moma_bread
 Script memeriksa Docker Desktop, file `.env`, branch `main`, dan perubahan
 tracked lokal; lalu mengambil perubahan terbaru dengan `git pull --ff-only`,
 memvalidasi Compose, serta menjalankan `docker compose up -d --build`. Perintah
-memperbarui service web dan mempertahankan database, upload, serta backup di
-volumes.
+memperbarui service web dan mempertahankan database serta backup di Docker
+volumes, juga gambar upload di folder Windows.
+
+Saat pindah dari Docker volume upload ke bind mount, script update satu kali
+menyalin isi `/var/www/html/assets/img/uploads` dari container web yang sedang
+berjalan ke folder `Uploads` sebelum membuat ulang container. Pastikan folder
+`C:\TZ_FIles\Moma_bread\Uploads` belum dibuat kosong secara manual. Jika migrasi
+gagal, script berhenti tanpa memperbarui atau menghapus container lama. Setelah
+berhasil, upload baru dan perubahan gambar akan langsung tersimpan di folder
+Windows tersebut.
 
 Jika checkout memiliki perubahan lokal, script berhenti agar tidak menimpa
 perubahan tersebut. Simpan atau commit perubahan terlebih dahulu, lalu jalankan
@@ -120,8 +128,9 @@ workflow deployment ini untuk pull request dari kontributor yang tidak dipercaya
 - Log aplikasi: `docker compose logs -f web`
 - Log database: `docker compose logs -f db`
 - Hentikan container tanpa menghapus data: `docker compose down`
-- Jangan gunakan `docker compose down -v`: opsi `-v` menghapus volume database,
-  upload, dan backup.
+- Jangan gunakan `docker compose down -v`: opsi `-v` menghapus volume database
+  dan backup. Folder upload `Uploads` berada di Windows dan tidak dihapus oleh
+  perintah tersebut.
 
 Nama project Compose dikunci sebagai `moma-bread`. Volume database bernama
 `moma-bread_database`, sehingga tidak bergantung pada MariaDB atau volume stack

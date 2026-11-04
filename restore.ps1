@@ -45,7 +45,7 @@ try {
     if (-not (Test-Path -LiteralPath (Join-Path $appDir '.env'))) {
         throw '.env is missing.'
     }
-    & docker info *> $null
+    & $env:ComSpec /d /c 'docker info >nul 2>nul'
     if ($LASTEXITCODE -ne 0) {
         throw 'Docker Desktop engine is unavailable.'
     }

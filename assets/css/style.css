@@ -43,6 +43,7 @@ body.navopen .navoverlay{opacity:1;visibility:visible}
 
 @media(max-width:860px){
   .navtoggle{display:grid}
+  header{background:var(--bg);backdrop-filter:none}
   header nav .navlinks{
     position:fixed;top:0;right:0;bottom:0;width:min(82vw,300px);
     background:var(--card);border-left:1px solid var(--line);

@@ -93,7 +93,7 @@
     /* ------------------------------------------------------------------
      |  Tandai link navigasi yang sedang aktif
      * ---------------------------------------------------------------- */
-    var sections = ['menu', 'keunggulan', 'pesan', 'galeri', 'testimoni'];
+    var sections = ['menu', 'keunggulan', 'pesan', 'galeri', 'testimoni', 'kontak'];
     var links = document.querySelectorAll('nav .navlinks a.h');
 
     if (sections.length && links.length && 'IntersectionObserver' in window) {

@@ -95,7 +95,7 @@ require __DIR__ . '/includes/header.php';
 <?php endif; ?>
 
 <!-- ============================ HERO ============================ -->
-<div class="wrap">
+<div class="wrap" id="konten" tabindex="-1">
   <div class="hero">
     <div>
       <span class="badge">&#128293; Dipanggang setiap hari</span>

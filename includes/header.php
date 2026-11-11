@@ -68,7 +68,7 @@ $navHref = static function (string $anchor) use ($isHome): string {
 </head>
 <body class="<?= e($bodyClass) ?>">
 
-<a class="skip" href="#menu">Lompat ke konten</a>
+<a class="skip" href="#konten">Lompat ke konten</a>
 
 <header>
   <div class="wrap">

@@ -52,7 +52,7 @@ if (!$kategori) {
     require __DIR__ . '/includes/header.php';
     ?>
     <section>
-      <div class="wrap">
+      <div class="wrap" id="konten" tabindex="-1">
         <div class="t">
           <h2>Kategori tidak ditemukan</h2>
           <p>Maaf, halaman menu yang Anda cari tidak tersedia atau sudah disembunyikan.</p>
@@ -75,7 +75,7 @@ require __DIR__ . '/includes/header.php';
 ?>
 
 <!-- ====================== HEADER KATEGORI ====================== -->
-<div class="wrap">
+<div class="wrap" id="konten" tabindex="-1">
   <nav class="crumbs" aria-label="Breadcrumb">
     <a href="<?= e(url('index.php')) ?>">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg>

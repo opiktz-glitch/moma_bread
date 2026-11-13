@@ -256,6 +256,26 @@ function url(string $path = ''): string
 }
 
 /**
+ * URL publik absolut pada domain kanonis.
+ */
+function site_url(string $path = ''): string
+{
+    if (preg_match('#^https?://#i', $path)) {
+        return $path;
+    }
+
+    $basePath = trim(BASE_URL, '/');
+    $path = trim($path, '/');
+    if ($path !== '' && $basePath !== '' && ($path === $basePath || str_starts_with($path, $basePath . '/'))) {
+        $basePath = '';
+    }
+
+    $urlPath = trim($basePath . ($path === '' ? '' : '/' . $path), '/');
+
+    return 'https://momabread.web.id/' . ($urlPath === '' ? '' : $urlPath . ($path === '' ? '/' : ''));
+}
+
+/**
  * URL file aset. Contoh: asset('css/style.css')
  *
  * Ditambahi "?v=<waktu ubah file>" supaya browser langsung mengambil

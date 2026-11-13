@@ -79,7 +79,25 @@ if ($dbReady) {
 }
 
 $waDefault = wa_link();
-$pageTitle = s('site_name', 'Moma Bread') . ' - ' . s('site_tagline', 'Roti Hangat Rasa Rumahan');
+$siteName = s('site_name', 'Moma Bread');
+$pageTitle = $siteName . ' - ' . s('site_tagline', 'Roti Hangat Rasa Rumahan');
+$pageDesc = s('hero_text', 'Roti hangat Fresh dari dapur Moma.');
+$canonicalUrl = site_url();
+$structuredData = [
+    '@context' => 'https://schema.org',
+    '@type' => 'Bakery',
+    'name' => $siteName,
+    'url' => $canonicalUrl,
+    'description' => $pageDesc,
+    'image' => site_url(img(s('banner'), 'banner.jpg')),
+    'logo' => site_url(img(s('logo'), 'logo.png')),
+];
+
+if (s('instagram') !== '') {
+    $structuredData['sameAs'] = [
+        'https://instagram.com/' . ltrim(s('instagram'), '@'),
+    ];
+}
 
 $bodyClass = 'home';
 require __DIR__ . '/includes/header.php';

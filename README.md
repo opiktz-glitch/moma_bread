@@ -4,6 +4,14 @@ Aplikasi PHP untuk unmanaged landing page **Moma Bread**, dibangun dari desain
 `momabread.html`. Seluruh isi halaman sekarang berasal dari **MySQL/MariaDB**
 dan dapat dikelola dari **panel admin** tanpa menyentuh kode.
 
+## Panduan Pengembangan
+
+- [`AGENTS.md`](AGENTS.md) — konteks proyek dan panduan untuk agen coding
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — alur kontribusi, pemeriksaan, dan checklist pull request
+- [`CHANGELOG.md`](CHANGELOG.md) — riwayat perubahan aplikasi
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — komponen, alur request, dan deployment
+- [`ROADMAP.md`](ROADMAP.md) — usulan prioritas pengembangan; bukan jadwal rilis
+
 ## Fitur
 
 **Halaman publik**
@@ -37,6 +45,19 @@ Panduan deploy tersedia untuk beberapa lingkungan:
 
 - Docker (Windows, Linux, atau Mac): [`DEPLOY-DOCKER.md`](DEPLOY-DOCKER.md)
 - Server Ubuntu internal **tzserver**: [`DEPLOY-TZSERVER.md`](DEPLOY-TZSERVER.md)
+
+## SEO
+
+Halaman publik menyediakan canonical URL pada `https://momabread.web.id`,
+metadata untuk hasil berbagi, data terstruktur Bakery pada beranda, dan
+breadcrumb terstruktur pada halaman kategori. Sitemap dinamis tersedia di
+`https://momabread.web.id/sitemap.php`; `robots.txt` mengarahkan crawler ke
+sitemap tersebut dan mengecualikan area admin.
+
+Setelah domain aktif, daftarkan properti domain di Google Search Console dan
+kirim URL sitemap. Pastikan deskripsi, nama, kontak, dan gambar situs pada
+Pengaturan admin akurat dan diperbarui; data tersebut dipakai dalam metadata
+halaman.
 
 ## Kebutuhan Sistem
 

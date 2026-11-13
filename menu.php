@@ -49,6 +49,8 @@ if ($slug !== '' && db_is_installed()) {
 if (!$kategori) {
     http_response_code(404);
     $pageTitle = 'Kategori tidak ditemukan';
+    $canonicalUrl = '';
+    $robots = 'noindex,follow';
     require __DIR__ . '/includes/header.php';
     ?>
     <section>
@@ -69,7 +71,36 @@ if (!$kategori) {
 
 $siteName = s('site_name', 'Moma Bread');
 $pageTitle = $kategori['name'] . ' - Menu ' . $siteName;
-$pageDesc  = (string) $kategori['description'];
+$pageDesc  = trim((string) $kategori['description']);
+if ($pageDesc === '') {
+    $pageDesc = 'Lihat pilihan roti kategori ' . $kategori['name'] . ' dari ' . $siteName
+        . '. Temukan varian dan pesan melalui WhatsApp.';
+}
+$canonicalUrl = site_url(menu_url((string) $kategori['slug']));
+$structuredData = [
+    '@context' => 'https://schema.org',
+    '@type' => 'BreadcrumbList',
+    'itemListElement' => [
+        [
+            '@type' => 'ListItem',
+            'position' => 1,
+            'name' => 'Beranda',
+            'item' => site_url(),
+        ],
+        [
+            '@type' => 'ListItem',
+            'position' => 2,
+            'name' => 'Menu',
+            'item' => site_url('index.php#menu'),
+        ],
+        [
+            '@type' => 'ListItem',
+            'position' => 3,
+            'name' => (string) $kategori['name'],
+            'item' => $canonicalUrl,
+        ],
+    ],
+];
 
 require __DIR__ . '/includes/header.php';
 ?>

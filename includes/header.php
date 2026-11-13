@@ -6,6 +6,9 @@
  *   $pageTitle  string  Judul halaman
  *   $pageDesc   string  Meta description
  *   $bodyClass  string  Kelas tambahan pada <body>
+ *   $canonicalUrl string URL kanonis absolut
+ *   $robots     string  Instruksi pengindeksan
+ *   $structuredData array Data terstruktur Schema.org
  *
  * @package MomaBread
  */
@@ -16,6 +19,9 @@ $siteName    = s('site_name', 'Moma Bread');
 $pageTitle   = $pageTitle ?? ($siteName . ' – ' . s('site_tagline', 'Roti Hangat Rasa Rumahan'));
 $pageDesc    = $pageDesc ?? s('hero_text', 'Roti hangat Fresh dari dapur Moma.');
 $bodyClass   = $bodyClass ?? '';
+$canonicalUrl = $canonicalUrl ?? site_url();
+$robots       = $robots ?? 'index,follow';
+$socialImage  = site_url(img(s('banner'), 'banner.jpg'));
 
 /**
  * Menu navigasi utama.
@@ -46,13 +52,29 @@ $navHref = static function (string $anchor) use ($isHome): string {
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title><?= e($pageTitle) ?></title>
 <meta name="description" content="<?= e($pageDesc) ?>">
+<meta name="robots" content="<?= e($robots) ?>">
 <meta name="theme-color" content="#B8241B">
+<?php if ($canonicalUrl !== ''): ?>
+<link rel="canonical" href="<?= e($canonicalUrl) ?>">
+<?php endif; ?>
 <meta property="og:title" content="<?= e($pageTitle) ?>">
 <meta property="og:description" content="<?= e($pageDesc) ?>">
-<meta property="og:image" content="<?= e(img(s('banner'), 'banner.jpg')) ?>">
+<meta property="og:site_name" content="<?= e($siteName) ?>">
+<?php if ($canonicalUrl !== ''): ?>
+<meta property="og:url" content="<?= e($canonicalUrl) ?>">
+<?php endif; ?>
+<meta property="og:image" content="<?= e($socialImage) ?>">
 <meta property="og:type" content="website">
+<meta property="og:locale" content="id_ID">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<?= e($pageTitle) ?>">
+<meta name="twitter:description" content="<?= e($pageDesc) ?>">
+<meta name="twitter:image" content="<?= e($socialImage) ?>">
 <link rel="icon" href="<?= e(img(s('logo'), 'logo.png')) ?>">
 <link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">
+<?php if (!empty($structuredData)): ?>
+<script type="application/ld+json"><?= json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
+<?php endif; ?>
 
 <!-- Terapkan tema tersimpan sebelum halaman digambar agar tidak berkedip. -->
 <script>
